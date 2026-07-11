@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 
-import { fetchEnabledSocialStrategies, type SocialStrategyAvailability } from "@/lib/auth/clerk";
+import {
+  fetchEnabledSocialStrategies,
+  getCachedSocialStrategies,
+  type SocialStrategyAvailability,
+} from "@/lib/auth/clerk";
 
 const UNKNOWN: SocialStrategyAvailability = { apple: false, google: false };
 
@@ -10,7 +14,9 @@ const UNKNOWN: SocialStrategyAvailability = { apple: false, google: false };
  * confirms it's actually enabled — see `lib/auth/clerk.ts`.
  */
 export function useSocialStrategyAvailability(): SocialStrategyAvailability {
-  const [availability, setAvailability] = useState<SocialStrategyAvailability>(UNKNOWN);
+  const [availability, setAvailability] = useState<SocialStrategyAvailability>(
+    () => getCachedSocialStrategies() ?? UNKNOWN
+  );
 
   useEffect(() => {
     let cancelled = false;

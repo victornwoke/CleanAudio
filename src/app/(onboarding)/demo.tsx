@@ -2,19 +2,19 @@ import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 
+import { DemoPlaybackCard } from "@/components/audio/DemoPlaybackCard";
 import { AppButton } from "@/components/common/AppButton";
 import { AppScreen } from "@/components/common/AppScreen";
 import { AppText } from "@/components/common/AppText";
-import { DemoPlaybackCard } from "@/components/audio/DemoPlaybackCard";
 import { StepDots } from "@/components/onboarding/StepDots";
 import { spacing } from "@/constants/spacing";
-import { markOnboardingComplete } from "@/features/onboarding/useOnboardingStatus";
-import { DEFAULT_PRESET_ID } from "@/features/onboarding/personas";
 import {
   getDemoHeard,
   saveDefaultPresetOnly,
 } from "@/features/onboarding/onboardingPreferences";
+import { DEFAULT_PRESET_ID } from "@/features/onboarding/personas";
 import { useDemoPlayback } from "@/features/onboarding/useDemoPlayback";
+import { markOnboardingComplete } from "@/features/onboarding/useOnboardingStatus";
 import { track } from "@/lib/analytics/events";
 
 /**
@@ -32,12 +32,18 @@ export default function DemoScreen() {
   }, []);
 
   function handleTryOwnAudio() {
-    track({ name: "onboarding_cta_tapped", properties: { cta: "try_own_audio" } });
+    track({
+      name: "onboarding_cta_tapped",
+      properties: { cta: "try_own_audio" },
+    });
     router.push("/(onboarding)/persona");
   }
 
   async function handleExploreFirst() {
-    track({ name: "onboarding_cta_tapped", properties: { cta: "explore_first" } });
+    track({
+      name: "onboarding_cta_tapped",
+      properties: { cta: "explore_first" },
+    });
     setCompletionError(null);
     setIsCompleting(true);
 
@@ -69,8 +75,8 @@ export default function DemoScreen() {
         <View style={{ gap: spacing.xs }}>
           <AppText variant="display">Hear the difference.</AppText>
           <AppText variant="body" color="secondary">
-            One tap removes background noise, evens out levels, and masters
-            your audio to studio-ready quality.
+            One tap removes background noise, evens out levels, and masters your
+            audio to studio-ready quality.
           </AppText>
         </View>
 
@@ -97,7 +103,11 @@ export default function DemoScreen() {
               {completionError}
             </AppText>
           ) : null}
-          <AppButton label="Try it with my audio" onPress={handleTryOwnAudio} />
+          <AppButton
+            label="Try it with my audio"
+            onPress={handleTryOwnAudio}
+            disabled={isCompleting}
+          />
           <AppButton
             label={completionError ? "Try again" : "Explore first"}
             variant="ghost"

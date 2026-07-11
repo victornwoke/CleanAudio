@@ -1,13 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet } from "react-native";
+import { ActivityIndicator, Pressable } from "react-native";
 
 import { colors } from "@/constants/colors";
 import { iconNames } from "@/constants/images";
-import { componentRadii } from "@/constants/radii";
-import { layout, spacing } from "@/constants/spacing";
 import { AppText } from "@/components/common/AppText";
 import type { SocialProvider } from "@/types/auth";
+
+import { authButtonStyles } from "./authButtonStyles";
 
 export interface SocialAuthButtonProps {
   provider: SocialProvider;
@@ -61,14 +61,14 @@ export function SocialAuthButton({
       onBlur={() => setFocused(false)}
       disabled={isInteractionDisabled}
       style={({ pressed }) => [
-        styles.base,
+        authButtonStyles.base,
         {
           backgroundColor: pressed ? config.pressedBackground : config.background,
           borderWidth: config.border ? 1 : 0,
           borderColor: config.border,
           opacity: isInteractionDisabled ? 0.5 : 1,
         },
-        focused && styles.focused,
+        focused && authButtonStyles.focused,
       ]}
     >
       {loading ? (
@@ -90,21 +90,3 @@ export function SocialAuthButton({
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  base: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.xs,
-    height: 56,
-    minWidth: layout.minTouchTarget,
-    width: "100%",
-    borderRadius: componentRadii.button,
-  },
-  focused: {
-    outlineWidth: 2,
-    outlineColor: colors.primary,
-    outlineOffset: 2,
-  },
-});

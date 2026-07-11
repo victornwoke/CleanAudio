@@ -21,6 +21,17 @@ export interface SocialStrategyAvailability {
 }
 
 const UNAVAILABLE: SocialStrategyAvailability = { apple: false, google: false };
+const SOCIAL_STRATEGY_CACHE_TTL_MS = 30_000;
+
+let socialStrategyCache:
+  | { value: SocialStrategyAvailability; expiresAt: number }
+  | undefined;
+let socialStrategyRequest: Promise<SocialStrategyAvailability> | undefined;
+
+export function getCachedSocialStrategies(): SocialStrategyAvailability | undefined {
+  if (!socialStrategyCache || socialStrategyCache.expiresAt <= Date.now()) return undefined;
+  return socialStrategyCache.value;
+}
 
 /**
  * Clerk's own JS SDK reads this same public, unauthenticated endpoint on
@@ -33,33 +44,51 @@ const UNAVAILABLE: SocialStrategyAvailability = { apple: false, google: false };
  * risking a button that looks tappable but errors when pressed.
  */
 export async function fetchEnabledSocialStrategies(): Promise<SocialStrategyAvailability> {
+  const cached = getCachedSocialStrategies();
+  if (cached) return cached;
+  if (socialStrategyRequest) return socialStrategyRequest;
+
   const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
   if (!publishableKey) return UNAVAILABLE;
 
   const parsed = parsePublishableKey(publishableKey);
   if (!parsed) return UNAVAILABLE;
 
-  try {
+  socialStrategyRequest = (async () => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
-    const response = await fetch(
-      `https://${parsed.frontendApi}/v1/environment?_is_native=true`,
-      { signal: controller.signal }
-    );
-    clearTimeout(timeout);
-    if (!response.ok) return UNAVAILABLE;
+    try {
+      const response = await fetch(
+        `https://${parsed.frontendApi}/v1/environment?_is_native=true`,
+        { signal: controller.signal }
+      );
+      if (!response.ok) return UNAVAILABLE;
 
-    const environment = (await response.json()) as {
-      user_settings?: {
-        social?: Record<string, { enabled?: boolean }>;
+      const environment = (await response.json()) as {
+        user_settings?: {
+          social?: Record<string, { enabled?: boolean }>;
+        };
       };
-    };
-    const social = environment.user_settings?.social;
-    return {
-      apple: social?.oauth_apple?.enabled === true,
-      google: social?.oauth_google?.enabled === true,
-    };
-  } catch {
-    return UNAVAILABLE;
+      const social = environment.user_settings?.social;
+      const result = {
+        apple: social?.oauth_apple?.enabled === true,
+        google: social?.oauth_google?.enabled === true,
+      };
+      socialStrategyCache = {
+        value: result,
+        expiresAt: Date.now() + SOCIAL_STRATEGY_CACHE_TTL_MS,
+      };
+      return result;
+    } catch {
+      return UNAVAILABLE;
+    } finally {
+      clearTimeout(timeout);
+    }
+  })();
+
+  try {
+    return await socialStrategyRequest;
+  } finally {
+    socialStrategyRequest = undefined;
   }
 }

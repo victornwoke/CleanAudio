@@ -6,11 +6,12 @@ import { AppText } from "@/components/common/AppText";
 import { colors } from "@/constants/colors";
 import { iconNames } from "@/constants/images";
 import { componentRadii } from "@/constants/radii";
-import { layout, spacing } from "@/constants/spacing";
+import { spacing } from "@/constants/spacing";
 import { useSocialStrategyAvailability } from "@/features/auth/useSocialStrategyAvailability";
 import type { SocialProvider } from "@/types/auth";
 
 import { SocialAuthButton } from "./SocialAuthButton";
+import { authButtonStyles } from "./authButtonStyles";
 
 export interface AuthSheetProps {
   mode: "sign-in" | "sign-up";
@@ -112,12 +113,12 @@ function EmailContinueButton({
       onBlur={() => setFocused(false)}
       disabled={disabled}
       style={({ pressed }) => [
-        emailButtonStyles.base,
+        authButtonStyles.base,
         {
           backgroundColor: pressed ? colors.border : colors.surfaceStrong,
           opacity: disabled ? 0.5 : 1,
         },
-        focused && emailButtonStyles.focused,
+        focused && authButtonStyles.focused,
       ]}
     >
       <Ionicons name={iconNames.socialEmail} size={20} color={colors.textPrimary} />
@@ -153,23 +154,5 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: spacing.lg,
-  },
-});
-
-const emailButtonStyles = StyleSheet.create({
-  base: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.xs,
-    height: 56,
-    minWidth: layout.minTouchTarget,
-    width: "100%",
-    borderRadius: componentRadii.button,
-  },
-  focused: {
-    outlineWidth: 2,
-    outlineColor: colors.primary,
-    outlineOffset: 2,
   },
 });

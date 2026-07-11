@@ -3,7 +3,7 @@ import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 
-import { AuthSheet } from "@/components/auth/AuthSheet";
+import { AuthSheetScreen } from "@/components/auth/AuthSheetScreen";
 import { AppButton } from "@/components/common/AppButton";
 import { AppIconButton } from "@/components/common/AppIconButton";
 import { AppScreen } from "@/components/common/AppScreen";
@@ -62,19 +62,13 @@ export default function SignUpScreen() {
 
   if (view === "sheet") {
     return (
-      <AppScreen scroll keyboardSafe>
-        <AuthSheet
-          mode="sign-up"
-          onContinueWithEmail={() => setView("form")}
-          onSocialAuth={signInWithProvider}
-          socialPendingProvider={pendingProvider}
-        />
-        {socialError ? (
-          <AppText variant="caption" color="error" align="center" style={{ marginTop: spacing.sm }}>
-            {socialError}
-          </AppText>
-        ) : null}
-      </AppScreen>
+      <AuthSheetScreen
+        mode="sign-up"
+        onContinueWithEmail={() => setView("form")}
+        onSocialAuth={signInWithProvider}
+        socialPendingProvider={pendingProvider}
+        socialError={socialError}
+      />
     );
   }
 

@@ -2,10 +2,9 @@ export type AccountDeletionError =
   | { kind: "backend_unavailable"; message: string }
   | { kind: "unexpected"; message: string };
 
-export interface AccountDeletionResult {
-  ok: boolean;
-  error?: AccountDeletionError;
-}
+export type AccountDeletionResult =
+  | { ok: true }
+  | { ok: false; error: AccountDeletionError };
 
 /**
  * Typed handoff point for account deletion (AGENTS.md §8/§20, PRD §31's
