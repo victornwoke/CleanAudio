@@ -1,6 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
-const STORAGE_KEY = "cleanaudio.notifications.jobCompletionOptIn";
+import { usePreferencesStore } from "@/store/usePreferencesStore";
 
 /**
  * Typed seam for the "notify me when my audio is ready" opt-in
@@ -16,10 +14,10 @@ const STORAGE_KEY = "cleanaudio.notifications.jobCompletionOptIn";
  * prime the user for the system permission dialog.
  */
 export async function getJobNotificationOptIn(): Promise<boolean> {
-  const stored = await AsyncStorage.getItem(STORAGE_KEY);
-  return stored === "1";
+  await usePreferencesStore.persist.rehydrate();
+  return usePreferencesStore.getState().notifyWhenJobCompletes;
 }
 
 export async function setJobNotificationOptIn(optedIn: boolean): Promise<void> {
-  await AsyncStorage.setItem(STORAGE_KEY, optedIn ? "1" : "0");
+  usePreferencesStore.getState().updatePreference("notifyWhenJobCompletes", optedIn);
 }

@@ -1,6 +1,5 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
 import { PERSONA_OPTIONS } from "./personas";
+import { useOnboardingStore } from "@/store/useOnboardingStore";
 import type { PersonaId, PresetId } from "@/types/onboarding";
 
 /**
@@ -10,41 +9,37 @@ import type { PersonaId, PresetId } from "@/types/onboarding";
  * key — same namespace convention. Real project/job state lands with the
  * Zustand store in `prompts/14-zustand-and-local-data.md`.
  */
-const DEMO_HEARD_KEY = "cleanaudio.onboarding.demoHeard";
-const PERSONA_KEY = "cleanaudio.onboarding.personaId";
-const DEFAULT_PRESET_KEY = "cleanaudio.onboarding.defaultPresetId";
-
 export async function markDemoHeard(): Promise<void> {
-  await AsyncStorage.setItem(DEMO_HEARD_KEY, "true");
+  useOnboardingStore.getState().setDemoHeard();
 }
 
 export async function getDemoHeard(): Promise<boolean> {
-  return (await AsyncStorage.getItem(DEMO_HEARD_KEY)) === "true";
+  await useOnboardingStore.persist.rehydrate();
+  return useOnboardingStore.getState().hasHeardDemo;
 }
 
 export async function savePersonaSelection(
   personaId: PersonaId,
   presetId: PresetId,
 ): Promise<void> {
-  await AsyncStorage.multiSet([
-    [PERSONA_KEY, personaId],
-    [DEFAULT_PRESET_KEY, presetId],
-  ]);
+  useOnboardingStore.getState().setPersona(personaId, presetId);
 }
 
 export async function saveDefaultPresetOnly(presetId: PresetId): Promise<void> {
-  await AsyncStorage.setItem(DEFAULT_PRESET_KEY, presetId);
+  useOnboardingStore.getState().setDefaultPreset(presetId);
 }
 
 export async function getSelectedPersonaId(): Promise<PersonaId | null> {
-  const value = await AsyncStorage.getItem(PERSONA_KEY);
+  await useOnboardingStore.persist.rehydrate();
+  const value = useOnboardingStore.getState().personaId;
   return PERSONA_OPTIONS.some((persona) => persona.id === value)
     ? (value as PersonaId)
     : null;
 }
 
 export async function getDefaultPresetId(): Promise<PresetId | null> {
-  const value = await AsyncStorage.getItem(DEFAULT_PRESET_KEY);
+  await useOnboardingStore.persist.rehydrate();
+  const value = useOnboardingStore.getState().defaultPresetId;
   return PERSONA_OPTIONS.some((persona) => persona.defaultPresetId === value)
     ? (value as PresetId)
     : null;

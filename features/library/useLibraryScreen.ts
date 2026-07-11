@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { filterProjects, isActiveJob, sortByRecency } from "@/features/library/libraryFilters";
-import { SAMPLE_LIBRARY_PROJECTS } from "@/features/library/sampleLibraryData";
+import { useProjectStore } from "@/store/useProjectStore";
 import type { LibraryFilter, LibraryProject } from "@/types/library";
 
 export type LibraryLoadStatus = "loading" | "loaded";
@@ -21,11 +21,6 @@ export interface LibraryUsage {
  * expose, so this hook's body won't need to change when that lands — only
  * this one function does.
  */
-async function loadProjects(): Promise<LibraryProject[]> {
-  await new Promise((resolve) => setTimeout(resolve, 350));
-  return [...SAMPLE_LIBRARY_PROJECTS];
-}
-
 export interface UseLibraryScreenResult {
   status: LibraryLoadStatus;
   isEmpty: boolean;
@@ -53,23 +48,17 @@ export interface UseLibraryScreenResult {
 }
 
 export function useLibraryScreen(): UseLibraryScreenResult {
-  const [status, setStatus] = useState<LibraryLoadStatus>("loading");
-  const [projects, setProjects] = useState<LibraryProject[]>([]);
+  const projects = useProjectStore((state) => state.projects);
+  const repositoryStatus = useProjectStore((state) => state.loadState);
+  const load = useProjectStore((state) => state.load);
+  const upsert = useProjectStore((state) => state.upsert);
+  const remove = useProjectStore((state) => state.remove);
+  const status: LibraryLoadStatus = repositoryStatus === "ready" || repositoryStatus === "error" ? "loaded" : "loading";
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<LibraryFilter>("all");
   useEffect(() => {
-    let cancelled = false;
-
-    loadProjects().then((loaded) => {
-      if (cancelled) return;
-      setProjects(loaded);
-      setStatus("loaded");
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    if (repositoryStatus === "idle") void load();
+  }, [load, repositoryStatus]);
 
   const activeJobs = useMemo(
     () => sortByRecency(projects.filter(isActiveJob)),
@@ -82,37 +71,25 @@ export function useLibraryScreen(): UseLibraryScreenResult {
   );
 
   const cancelJob = useCallback((id: string) => {
-    setProjects((current) =>
-      current.map((project) =>
-        project.id === id && isActiveJob(project)
-          ? { ...project, processingState: "cancelled", processingProgress: undefined }
-          : project,
-      ),
-    );
-  }, []);
+    const project = projects.find((item) => item.id === id);
+    if (project && isActiveJob(project)) void upsert({ ...project, processingState: "cancelled", processingProgress: undefined });
+  }, [projects, upsert]);
 
   const retryFailed = useCallback((id: string) => {
-    setProjects((current) =>
-      current.map((project) =>
-        project.id === id && project.processingState === "failed"
-          ? { ...project, processingState: "queued" }
-          : project,
-      ),
-    );
-  }, []);
+    const project = projects.find((item) => item.id === id);
+    if (project?.processingState === "failed") void upsert({ ...project, processingState: "queued" });
+  }, [projects, upsert]);
 
   const renameProject = useCallback((id: string, displayName: string) => {
     const trimmed = displayName.trim();
     if (!trimmed) return;
-    setProjects((current) =>
-      current.map((project) => (project.id === id ? { ...project, displayName: trimmed } : project)),
-    );
-  }, []);
+    const project = projects.find((item) => item.id === id);
+    if (project) void upsert({ ...project, displayName: trimmed });
+  }, [projects, upsert]);
 
   const duplicateProject = useCallback((id: string) => {
-    setProjects((current) => {
-      const source = current.find((project) => project.id === id);
-      if (!source) return current;
+      const source = projects.find((project) => project.id === id);
+      if (!source) return;
       const duplicate: LibraryProject = {
         ...source,
         id: `${source.id}_copy_${Date.now()}_${duplicateSequence++}`,
@@ -126,13 +103,12 @@ export function useLibraryScreen(): UseLibraryScreenResult {
         processingProgress: undefined,
         adapterUsed: undefined,
       };
-      return [duplicate, ...current];
-    });
-  }, []);
+      void upsert(duplicate);
+  }, [projects, upsert]);
 
   const deleteProject = useCallback((id: string) => {
-    setProjects((current) => current.filter((project) => project.id !== id));
-  }, []);
+    void remove(id);
+  }, [remove]);
 
   return {
     status,
