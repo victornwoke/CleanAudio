@@ -90,6 +90,17 @@ export const iconNames = {
   retry: "refresh-outline",
   cancelJob: "close-circle-outline",
   openFile: "open-outline",
+
+  // Import (`prompts/07-record-and-import.md`, `05-import.png`)
+  importDropzone: "cloud-upload-outline",
+  importFromLibrary: "musical-notes-outline",
+  importFromFiles: "folder-outline",
+
+  // Record (`prompts/07-record-and-import.md`) — no dedicated visual
+  // reference; composed from existing design tokens (see screen notes).
+  recordDot: "ellipse",
+  recordStop: "square",
+  inputSource: "mic-outline",
 } as const satisfies Record<string, IconName>;
 
 export type IconToken = keyof typeof iconNames;

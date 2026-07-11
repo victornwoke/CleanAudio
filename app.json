@@ -37,8 +37,15 @@
       [
         "expo-audio",
         {
-          "recordAudioAndroid": false,
+          "microphonePermission": "CleanAudio needs microphone access to record audio you want to enhance.",
+          "recordAudioAndroid": true,
           "enableBackgroundPlayback": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "CleanAudio needs access to your photo library to import video or audio you want to enhance."
         }
       ],
       "expo-asset",

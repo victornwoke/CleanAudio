@@ -39,8 +39,8 @@ export default function RootLayout() {
         <Stack.Screen name="(auth)/sign-up" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)/verify" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="import" options={{ title: "Import" }} />
-        <Stack.Screen name="record" options={{ title: "Record" }} />
+        <Stack.Screen name="import" options={{ headerShown: false }} />
+        <Stack.Screen name="record" options={{ headerShown: false }} />
         <Stack.Screen name="presets" options={{ title: "Choose a Preset" }} />
         <Stack.Screen name="processing/[jobId]" options={{ headerShown: false }} />
         <Stack.Screen name="review/[projectId]" options={{ title: "Review" }} />
