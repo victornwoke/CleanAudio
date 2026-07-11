@@ -105,6 +105,11 @@ export const iconNames = {
   // Preset selection (`prompts/08-preset-selection.md`, `cleanaudio-presets.png`)
   presetFieldInterview: "navigate-outline",
   presetRecommended: "star",
+
+  // Before/after review (`prompts/10-before-after-review.md`, `08-before-after.png`)
+  reviewMuted: "volume-mute-outline",
+  reviewUnmuted: "volume-high-outline",
+  reviewCompareHandle: "swap-horizontal",
 } as const satisfies Record<string, IconName>;
 
 export type IconToken = keyof typeof iconNames;

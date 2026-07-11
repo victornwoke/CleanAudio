@@ -2,11 +2,13 @@ import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
   Easing,
+  useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
+import Svg, { Circle } from "react-native-svg";
 
 import { colors } from "@/constants/colors";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -24,34 +26,28 @@ export interface ProcessingRingProps {
 }
 
 const TRACK_COLOR = "rgba(255,255,255,0.08)";
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 /**
- * Dependency-free circular progress ring (`07-processing.png`'s "72%"
- * ring), built from two rotating half-circle "pie" pieces masked by an
- * inner circle the same color as the screen background — the standard
- * technique for a ring/arc in plain React Native without adding an SVG
- * dependency. Indeterminate mode renders a partial spinning arc instead of
- * a fabricated number.
+ * Circular progress ring (`07-processing.png`'s "72%" ring). Determinate
+ * progress uses a real SVG stroke so the visible sweep is exact at both
+ * endpoints; indeterminate mode renders a partial spinning arc instead of a
+ * fabricated number.
  */
 export function ProcessingRing({ progress, label, size = 220, strokeWidth = 14 }: ProcessingRingProps) {
   const reducedMotion = useReducedMotion();
-  const rightRotation = useSharedValue(0);
-  const leftRotation = useSharedValue(0);
+  const animatedProgress = useSharedValue(0);
   const spin = useSharedValue(0);
 
   useEffect(() => {
     if (progress === null) return;
-    const angle = Math.min(1, Math.max(0, progress)) * 360;
-    const right = Math.min(180, angle);
-    const left = Math.max(0, angle - 180);
+    const nextProgress = Math.min(1, Math.max(0, progress));
     if (reducedMotion) {
-      rightRotation.value = right;
-      leftRotation.value = left;
+      animatedProgress.value = nextProgress;
     } else {
-      rightRotation.value = withTiming(right, { duration: 350 });
-      leftRotation.value = withTiming(left, { duration: 350 });
+      animatedProgress.value = withTiming(nextProgress, { duration: 350 });
     }
-  }, [progress, reducedMotion, rightRotation, leftRotation]);
+  }, [progress, reducedMotion, animatedProgress]);
 
   useEffect(() => {
     if (progress !== null || reducedMotion) {
@@ -61,11 +57,13 @@ export function ProcessingRing({ progress, label, size = 220, strokeWidth = 14 }
     spin.value = withRepeat(withTiming(360, { duration: 1100, easing: Easing.linear }), -1, false);
   }, [progress, reducedMotion, spin]);
 
-  const rightStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${rightRotation.value}deg` }] }));
-  const leftStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${leftRotation.value}deg` }] }));
   const spinStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${spin.value}deg` }] }));
 
-  const innerSize = size - strokeWidth * 2;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const progressProps = useAnimatedProps(() => ({
+    strokeDashoffset: circumference * (1 - animatedProgress.value),
+  }));
   const percentLabel = progress !== null ? `${Math.round(progress * 100)}%` : null;
 
   return (
@@ -75,21 +73,31 @@ export function ProcessingRing({ progress, label, size = 220, strokeWidth = 14 }
       accessibilityValue={
         progress !== null ? { min: 0, max: 100, now: Math.round(progress * 100) } : undefined
       }
-      style={[styles.track, { width: size, height: size, borderRadius: size / 2 }]}
+      style={[styles.container, { width: size, height: size, borderRadius: size / 2 }]}
     >
       {progress !== null ? (
-        <>
-          <View style={[styles.halfClip, { width: size / 2, height: size, left: size / 2 }]}>
-            <Animated.View
-              style={[styles.fill, { width: size, height: size, borderRadius: size / 2, left: -size / 2 }, rightStyle]}
-            />
-          </View>
-          <View style={[styles.halfClip, { width: size / 2, height: size, left: 0 }]}>
-            <Animated.View
-              style={[styles.fill, { width: size, height: size, borderRadius: size / 2, left: -size / 2 }, leftStyle]}
-            />
-          </View>
-        </>
+        <Svg width={size} height={size} style={styles.svg}>
+          <Circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke={TRACK_COLOR}
+            strokeWidth={strokeWidth}
+          />
+          <AnimatedCircle
+            animatedProps={progressProps}
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke={colors.primary}
+            strokeWidth={strokeWidth}
+            strokeDasharray={`${circumference} ${circumference}`}
+            rotation={-90}
+            origin={`${size / 2}, ${size / 2}`}
+          />
+        </Svg>
       ) : (
         <Animated.View
           style={[
@@ -104,18 +112,6 @@ export function ProcessingRing({ progress, label, size = 220, strokeWidth = 14 }
           ]}
         />
       )}
-      <View
-        style={[
-          styles.hole,
-          {
-            width: innerSize,
-            height: innerSize,
-            borderRadius: innerSize / 2,
-            top: strokeWidth,
-            left: strokeWidth,
-          },
-        ]}
-      />
       <View style={styles.centerContent}>
         {percentLabel ? (
           <AppText variant="display" color="onDark" align="center">
@@ -136,29 +132,18 @@ export function ProcessingRing({ progress, label, size = 220, strokeWidth = 14 }
 }
 
 const styles = StyleSheet.create({
-  track: {
-    backgroundColor: TRACK_COLOR,
+  container: {
     alignItems: "center",
     justifyContent: "center",
   },
-  halfClip: {
+  svg: {
     position: "absolute",
-    top: 0,
-    overflow: "hidden",
-  },
-  fill: {
-    position: "absolute",
-    backgroundColor: colors.primary,
   },
   spinner: {
     position: "absolute",
     borderColor: "transparent",
     borderTopColor: colors.primary,
     borderRightColor: colors.primary,
-  },
-  hole: {
-    position: "absolute",
-    backgroundColor: colors.processingBackground,
   },
   centerContent: {
     alignItems: "center",

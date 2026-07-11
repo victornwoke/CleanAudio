@@ -5,9 +5,10 @@ import { Pressable, StyleSheet, type PressableProps } from "react-native";
 import { colors } from "../../constants/colors";
 import type { IconName } from "../../constants/images";
 import { componentRadii } from "../../constants/radii";
+import { shadows } from "../../constants/shadows";
 import { layout } from "../../constants/spacing";
 
-export type AppIconButtonVariant = "default" | "soft" | "ghost";
+export type AppIconButtonVariant = "default" | "soft" | "ghost" | "primary";
 export type AppIconButtonSize = "sm" | "md" | "lg";
 
 export interface AppIconButtonProps
@@ -45,6 +46,11 @@ const variantColors: Record<
     pressedBackground: colors.surfaceStrong,
     icon: colors.textSecondary,
   },
+  primary: {
+    background: colors.primary,
+    pressedBackground: colors.primaryStrong,
+    icon: colors.textOnPrimary,
+  },
 };
 
 /** Circular icon-only button (play/pause, more menu, header actions). */
@@ -81,6 +87,7 @@ export function AppIconButton({
       hitSlop={box < layout.minTouchTarget ? 8 : undefined}
       style={({ pressed }) => [
         styles.base,
+        variant === "primary" && !disabled && shadows.primaryButton,
         {
           width: box,
           height: box,

@@ -14,11 +14,18 @@ import { AppText } from "../common/AppText";
 export interface StageListProps {
   /** `null` before the first stage is known — every row renders as pending. */
   currentStage: ProcessingStage | null;
+  /** Completes every row, including Finalizing, once the job is terminal. */
+  isComplete?: boolean;
 }
 
 type RowState = "done" | "current" | "pending";
 
-function stageRowState(stage: ProcessingStage, currentStage: ProcessingStage | null): RowState {
+function stageRowState(
+  stage: ProcessingStage,
+  currentStage: ProcessingStage | null,
+  isComplete: boolean,
+): RowState {
+  if (isComplete) return "done";
   if (currentStage === null) return "pending";
   const currentIndex = PROCESSING_STAGE_ORDER.indexOf(currentStage);
   const stageIndex = PROCESSING_STAGE_ORDER.indexOf(stage);
@@ -32,11 +39,11 @@ function stageRowState(stage: ProcessingStage, currentStage: ProcessingStage | n
  * "Mastering loudness" which the PNG's 6-row screenshot doesn't depict —
  * see `docs/implementation-status.md` for why the prompt's explicit stage
  * list takes precedence over the reference image's row count here. */
-export function StageList({ currentStage }: StageListProps) {
+export function StageList({ currentStage, isComplete = false }: StageListProps) {
   return (
     <View style={styles.container}>
       {PROCESSING_STAGE_ORDER.map((stage) => {
-        const state = stageRowState(stage, currentStage);
+        const state = stageRowState(stage, currentStage, isComplete);
         const label = PROCESSING_STAGE_LABELS[stage];
 
         return (

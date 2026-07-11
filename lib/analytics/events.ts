@@ -1,6 +1,7 @@
 import type { PersonaId } from "@/types/onboarding";
 import type { EnhancementAdapter } from "@/types/library";
 import type { ProcessingErrorCode, ProcessingStage } from "@/types/processing";
+import type { ReviewFeedbackReason } from "@/types/review";
 
 /**
  * Typed onboarding analytics events (`prompts/04-demo-onboarding-persona.md`).
@@ -33,7 +34,11 @@ export type AnalyticsEvent =
       name: "processing_failed";
       properties: { errorCode: ProcessingErrorCode; elapsedSeconds: number };
     }
-  | { name: "processing_notify_opt_in_changed"; properties: { optedIn: boolean } };
+  | { name: "processing_notify_opt_in_changed"; properties: { optedIn: boolean } }
+  | {
+      name: "review_feedback_submitted";
+      properties: { reason: ReviewFeedbackReason };
+    };
 
 export function track(event: AnalyticsEvent): void {
   if (__DEV__) {

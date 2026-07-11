@@ -19,6 +19,7 @@ import { AppText } from "./AppText";
 export type AppButtonVariant =
   | "primary"
   | "secondary"
+  | "outline"
   | "ghost"
   | "destructive"
   | "outlineOnDark";
@@ -53,6 +54,12 @@ const variantStyles: Record<
     pressedBackground: colors.surfaceStrong,
     text: "brand",
     border: colors.border,
+  },
+  outline: {
+    background: colors.surface,
+    pressedBackground: colors.surfaceStrong,
+    text: "brand",
+    border: colors.primary,
   },
   ghost: {
     background: "transparent",

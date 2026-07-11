@@ -2,89 +2,17 @@ import { useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { goToPresetSelection } from "@/features/audio/audioProjectNavigation";
+import { parseAudioProjectParams, type AudioProjectRouteParams } from "@/features/audio/parseAudioProjectParams";
 import { useProcessingJob } from "@/features/processing/useProcessingJob";
 import { track } from "@/lib/analytics/events";
 import { getJobNotificationOptIn, setJobNotificationOptIn } from "@/lib/notifications/jobNotificationPreference";
-import type { AudioProject, AudioProjectSource, MediaContainer } from "@/types/audio";
-import type { MediaType } from "@/types/library";
+import type { AudioProject } from "@/types/audio";
 
-const VALID_MEDIA_TYPES: readonly MediaType[] = ["audio", "video"];
-const VALID_SOURCES: readonly AudioProjectSource[] = ["recorded", "imported"];
-const VALID_CONTAINERS: readonly MediaContainer[] = [
-  "mp3",
-  "m4a",
-  "wav",
-  "flac",
-  "aac",
-  "aiff",
-  "mp4",
-  "mov",
-];
-
-interface RouteParams {
-  [key: string]: string | string[];
+interface RouteParams extends AudioProjectRouteParams {
   jobId: string;
-  projectId: string;
-  displayName: string;
-  mediaType: string;
-  source: string;
-  sourceUri: string;
-  container: string;
-  durationSeconds: string;
-  sizeBytes: string;
-  createdAt: string;
-  needsAudioExtraction: string;
 }
 
-/**
- * Reconstructs the `AudioProject` forwarded by
- * `audioProjectNavigation.ts#goToProcessing`, used only so a failed job can
- * hand the *same* original project back to preset selection ("Job
- * behaviour": "Failed job preserves source project and offers retry or
- * alternate processing mode"). Returns `null` on any missing/malformed
- * field — this screen still functions without it (a bare `jobId` deep link
- * can still show progress and elapsed time), it just can't offer the
- * "choose a different preset" alternate action.
- */
-function parseAudioProject(params: RouteParams): AudioProject | null {
-  const {
-    projectId,
-    displayName,
-    mediaType,
-    source,
-    sourceUri,
-    container,
-    durationSeconds,
-    sizeBytes,
-    createdAt,
-    needsAudioExtraction,
-  } = params;
-
-  if (!projectId || !displayName || !sourceUri || !createdAt) return null;
-  if (!mediaType || !VALID_MEDIA_TYPES.includes(mediaType as MediaType)) return null;
-  if (!source || !VALID_SOURCES.includes(source as AudioProjectSource)) return null;
-  if (!container || !VALID_CONTAINERS.includes(container as MediaContainer)) return null;
-
-  const sizeBytesNum = Number(sizeBytes);
-  if (!Number.isFinite(sizeBytesNum) || sizeBytesNum < 0) return null;
-
-  const durationSecondsNum =
-    durationSeconds && durationSeconds.length > 0 ? Number(durationSeconds) : null;
-  if (durationSecondsNum !== null && !Number.isFinite(durationSecondsNum)) return null;
-
-  return {
-    id: projectId,
-    displayName,
-    mediaType: mediaType as MediaType,
-    source: source as AudioProjectSource,
-    sourceUri,
-    container: container as MediaContainer,
-    durationSeconds: durationSecondsNum,
-    sizeBytes: sizeBytesNum,
-    createdAt,
-    needsAudioExtraction: needsAudioExtraction === "1",
-  };
-}
+const reportedTerminalAttempts = new Set<string>();
 
 export interface UseProcessingScreenResult {
   jobId: string;
@@ -101,14 +29,15 @@ export interface UseProcessingScreenResult {
 
 export function useProcessingScreen(jobId: string): UseProcessingScreenResult {
   const params = useLocalSearchParams<RouteParams>();
-  const project = useMemo(() => parseAudioProject(params), [params]);
+  const project = useMemo(() => parseAudioProjectParams(params), [params]);
   const job = useProcessingJob(jobId);
 
   const [notifyOptedIn, setNotifyOptedIn] = useState(false);
+  const notificationPreferenceMutatedRef = useRef(false);
   useEffect(() => {
     let cancelled = false;
     getJobNotificationOptIn().then((value) => {
-      if (!cancelled) setNotifyOptedIn(value);
+      if (!cancelled && !notificationPreferenceMutatedRef.current) setNotifyOptedIn(value);
     });
     return () => {
       cancelled = true;
@@ -116,6 +45,7 @@ export function useProcessingScreen(jobId: string): UseProcessingScreenResult {
   }, []);
 
   function toggleNotifyOptIn(): void {
+    notificationPreferenceMutatedRef.current = true;
     const next = !notifyOptedIn;
     setNotifyOptedIn(next);
     void setJobNotificationOptIn(next);
@@ -138,22 +68,31 @@ export function useProcessingScreen(jobId: string): UseProcessingScreenResult {
   useEffect(() => {
     const snapshot = job.snapshot;
     if (!snapshot) return;
-    if (reportedStatusRef.current === snapshot.status) return;
+    const attemptKey = `${snapshot.jobId}:${snapshot.startedAt}:${snapshot.status}`;
+    if (
+      reportedStatusRef.current === attemptKey ||
+      reportedTerminalAttempts.has(attemptKey)
+    ) {
+      return;
+    }
 
     if (snapshot.status === "completed") {
-      reportedStatusRef.current = snapshot.status;
+      reportedStatusRef.current = attemptKey;
+      reportedTerminalAttempts.add(attemptKey);
       track({
         name: "processing_completed",
         properties: { adapter: snapshot.adapter, elapsedSeconds: job.elapsedSeconds },
       });
     } else if (snapshot.status === "cancelled") {
-      reportedStatusRef.current = snapshot.status;
+      reportedStatusRef.current = attemptKey;
+      reportedTerminalAttempts.add(attemptKey);
       track({
         name: "processing_cancelled",
         properties: { stage: snapshot.stage, elapsedSeconds: job.elapsedSeconds },
       });
     } else if (snapshot.status === "failed") {
-      reportedStatusRef.current = snapshot.status;
+      reportedStatusRef.current = attemptKey;
+      reportedTerminalAttempts.add(attemptKey);
       track({
         name: "processing_failed",
         properties: {

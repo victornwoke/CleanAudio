@@ -48,7 +48,7 @@ function buildSnapshot(jobId: string, record: JobRecord): ProcessingJobSnapshot 
         : record.stageIndex / totalStages;
   const estimatedRemainingSeconds =
     record.status === "preparing" || record.status === "processing"
-      ? Math.max(0, Math.round(((totalStages - 1 - record.stageIndex) * STAGE_DURATION_MS) / 1000))
+      ? Math.max(0, Math.round(((totalStages - record.stageIndex) * STAGE_DURATION_MS) / 1000))
       : null;
 
   return {
@@ -120,7 +120,7 @@ export const developmentMockProcessingAdapter: ProcessingJobAdapter = {
   cancel(jobId) {
     const record = registry.get(jobId);
     if (!record) return;
-    if (record.status === "completed" || record.status === "cancelled") return;
+    if (record.status !== "preparing" && record.status !== "processing") return;
     clearTimer(record);
     record.status = "cancel_requested";
     notify(jobId, record);
@@ -142,6 +142,7 @@ export const developmentMockProcessingAdapter: ProcessingJobAdapter = {
       getOrCreateRecord(jobId);
       return;
     }
+    if (existing.status !== "failed" && existing.status !== "cancelled") return;
     clearTimer(existing);
     existing.status = "preparing";
     existing.stageIndex = 0;

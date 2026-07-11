@@ -40,3 +40,5 @@ export * from "./presets/PresetCard";
 export * from "./presets/PresetOptionsGrid";
 export * from "./processing/ProcessingRing";
 export * from "./processing/StageList";
+export * from "./review/CompareTimeline";
+export * from "./review/FeedbackSheet";

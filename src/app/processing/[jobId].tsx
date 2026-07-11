@@ -12,6 +12,7 @@ import { StageList } from "@/components/processing/StageList";
 import { colors } from "@/constants/colors";
 import { iconNames } from "@/constants/images";
 import { spacing } from "@/constants/spacing";
+import { goToReview } from "@/features/audio/audioProjectNavigation";
 import { formatDuration } from "@/features/library/formatDuration";
 import { getProcessingErrorMessage } from "@/features/processing/processingErrorMessages";
 import { useProcessingScreen } from "@/features/processing/useProcessingScreen";
@@ -65,12 +66,23 @@ function ResolvedProcessingScreen({ jobId }: { jobId: string }) {
     if (snapshot?.status !== "completed" || navigatedRef.current) return;
     navigatedRef.current = true;
     const timeout = setTimeout(() => {
-      router.replace({
-        pathname: "/review/[projectId]",
-        params: { projectId: project?.id ?? jobId },
-      });
+      if (project) {
+        goToReview(project, { replace: true });
+      } else {
+        router.replace({
+          pathname: "/review/[projectId]",
+          params: { projectId: jobId },
+        });
+      }
     }, 700);
     return () => clearTimeout(timeout);
+    // `project` intentionally excluded — `useLocalSearchParams` returns a new
+    // object every render, so `project` (memoized off of it) is never
+    // reference-stable even though its content is unchanged for a given
+    // `project?.id`. Depending on the object itself made this effect re-run
+    // every render, clearing its own pending navigation before the 700ms
+    // timeout ever fired — caught live on-device (stuck at "100% / Done").
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snapshot?.status, project?.id, jobId]);
 
   if (!snapshot) {
@@ -141,7 +153,7 @@ function ResolvedProcessingScreen({ jobId }: { jobId: string }) {
 
       <WaveformPlaceholder state="enhanced" progress={snapshot.progress ?? 0} />
 
-      <StageList currentStage={snapshot.stage} />
+      <StageList currentStage={snapshot.stage} isComplete={snapshot.status === "completed"} />
 
       <View style={styles.timingRow}>
         <AppText variant="caption" color="onDark" style={styles.secondaryText}>

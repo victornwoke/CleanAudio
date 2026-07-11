@@ -59,3 +59,26 @@ export function goToProcessing(project: AudioProject, presetId: PresetId): void 
     },
   });
 }
+
+/**
+ * Hand-off from processing to the before/after review screen
+ * (`prompts/10-before-after-review.md`). The review screen reconstructs
+ * the full `AudioProject` the same way `presets.tsx`/the processing screen
+ * do, so every field must be forwarded here too — not just `projectId` (a
+ * bare id was enough for the `prompts/03` placeholder this replaces, but
+ * left the real screen with no source audio to play).
+ */
+export function goToReview(project: AudioProject, options?: { replace?: boolean }): void {
+  const target = {
+    pathname: "/review/[projectId]" as const,
+    params: {
+      projectId: project.id,
+      ...getAudioProjectRouteParams(project),
+    },
+  };
+  if (options?.replace) {
+    router.replace(target);
+  } else {
+    router.push(target);
+  }
+}
