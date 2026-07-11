@@ -1,7 +1,6 @@
-import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 
-import { goToFineTune } from "@/features/audio/audioProjectNavigation";
+import { goToExport, goToFineTune } from "@/features/audio/audioProjectNavigation";
 import { track } from "@/lib/analytics/events";
 import type { AudioProject } from "@/types/audio";
 import type { ReviewFeedbackReason } from "@/types/review";
@@ -93,7 +92,7 @@ export function useReviewScreen(project: AudioProject): UseReviewScreenResult {
 
   function goExport(): void {
     if (!playback.enhancedAvailable) return;
-    router.push({ pathname: "/export/[projectId]", params: { projectId: project.id } });
+    goToExport(project);
   }
 
   const exportDisabledReason = playback.enhancedAvailable

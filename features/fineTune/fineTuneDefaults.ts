@@ -14,7 +14,7 @@ export const LOUDNESS_TARGET_OPTIONS: readonly LoudnessTargetOption[] = [
 const DEFAULT_LOUDNESS_TARGET: LoudnessTargetId = "podcast";
 const DEFAULT_PRESET_ID = "podcast" as const;
 
-function loudnessTargetForLufs(lufs: number): LoudnessTargetId {
+export function loudnessTargetForLufs(lufs: number): LoudnessTargetId {
   return LOUDNESS_TARGET_OPTIONS.find((option) => option.lufs === lufs)?.id ?? DEFAULT_LOUDNESS_TARGET;
 }
 

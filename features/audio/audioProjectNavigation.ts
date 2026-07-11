@@ -100,3 +100,21 @@ export function goToReview(project: AudioProject, options?: { replace?: boolean 
     router.push(target);
   }
 }
+
+/**
+ * Hand-off from the before/after review screen to export
+ * (`prompts/12-export-and-success.md`). Forwards the full `AudioProject`,
+ * not just `projectId` — the same bare-id hand-off bug already caught and
+ * fixed once for every other screen transition in this app (see
+ * `docs/implementation-status.md`); a bare id here would leave the export
+ * screen with no `sourceUri` to reconstruct a project from.
+ */
+export function goToExport(project: AudioProject): void {
+  router.push({
+    pathname: "/export/[projectId]",
+    params: {
+      projectId: project.id,
+      ...getAudioProjectRouteParams(project),
+    },
+  });
+}

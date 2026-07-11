@@ -44,3 +44,4 @@ export * from "./processing/ProcessingRing";
 export * from "./processing/StageList";
 export * from "./review/CompareTimeline";
 export * from "./review/FeedbackSheet";
+export * from "./export/FormatOptionChip";
