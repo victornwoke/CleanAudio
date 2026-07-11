@@ -114,6 +114,10 @@ export const iconNames = {
   // Export & success (`prompts/12-export-and-success.md`, `09-export.png`)
   exportSaveToFiles: "download-outline",
   exportShare: "share-outline",
+
+  // History and file detail (`prompts/13-history-and-file-detail.md`)
+  compare: "swap-horizontal-outline",
+  adjust: "options-outline",
 } as const satisfies Record<string, IconName>;
 
 export type IconToken = keyof typeof iconNames;
