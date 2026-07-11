@@ -14,20 +14,33 @@ export interface PresetCardProps {
   icon: IconName;
   selected: boolean;
   badgeLabel?: string | null;
+  idealEnvironment?: string;
   onPress: () => void;
 }
 
 /** Single preset option card matching `cleanaudio-presets.png`'s 2-column
  * grid: icon bubble, name, one-line outcome, optional recommended badge,
  * and a selected border/tint state. */
-export function PresetCard({ title, subtitle, icon, selected, badgeLabel, onPress }: PresetCardProps) {
+export function PresetCard({
+  title,
+  subtitle,
+  icon,
+  selected,
+  badgeLabel,
+  idealEnvironment,
+  onPress,
+}: PresetCardProps) {
+  const accessibilityLabel = `${title}. ${subtitle}.${
+    idealEnvironment ? ` ${idealEnvironment}.` : ""
+  }${badgeLabel ? ` ${badgeLabel}.` : ""}`;
+
   return (
     <AppCard
       variant={selected ? "selected" : "default"}
       onPress={onPress}
       style={styles.card}
       accessibilityState={{ selected }}
-      accessibilityLabel={`${title}. ${subtitle}.${badgeLabel ? ` ${badgeLabel}.` : ""}`}
+      accessibilityLabel={accessibilityLabel}
     >
       <View style={styles.topRow}>
         <View style={[styles.iconCircle, selected && styles.iconCircleSelected]}>

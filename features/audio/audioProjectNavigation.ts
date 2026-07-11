@@ -3,6 +3,20 @@ import { router } from "expo-router";
 import type { AudioProject } from "@/types/audio";
 import type { PresetId } from "@/types/onboarding";
 
+function getAudioProjectRouteParams(project: AudioProject) {
+  return {
+    displayName: project.displayName,
+    mediaType: project.mediaType,
+    source: project.source,
+    sourceUri: project.sourceUri,
+    container: project.container,
+    durationSeconds: project.durationSeconds === null ? "" : String(project.durationSeconds),
+    sizeBytes: String(project.sizeBytes),
+    createdAt: project.createdAt,
+    needsAudioExtraction: project.needsAudioExtraction ? "1" : "0",
+  };
+}
+
 /**
  * Single hand-off point used by both the Record and Import flows so a
  * project created either way feeds the same next step
@@ -18,15 +32,7 @@ export function goToPresetSelection(project: AudioProject): void {
     pathname: "/presets",
     params: {
       projectId: project.id,
-      displayName: project.displayName,
-      mediaType: project.mediaType,
-      source: project.source,
-      sourceUri: project.sourceUri,
-      container: project.container,
-      durationSeconds: project.durationSeconds === null ? "" : String(project.durationSeconds),
-      sizeBytes: String(project.sizeBytes),
-      createdAt: project.createdAt,
-      needsAudioExtraction: project.needsAudioExtraction ? "1" : "0",
+      ...getAudioProjectRouteParams(project),
       presetId: project.presetId ?? "",
     },
   });
@@ -49,15 +55,7 @@ export function goToProcessing(project: AudioProject, presetId: PresetId): void 
       jobId: project.id,
       projectId: project.id,
       presetId,
-      displayName: project.displayName,
-      mediaType: project.mediaType,
-      source: project.source,
-      sourceUri: project.sourceUri,
-      container: project.container,
-      durationSeconds: project.durationSeconds === null ? "" : String(project.durationSeconds),
-      sizeBytes: String(project.sizeBytes),
-      createdAt: project.createdAt,
-      needsAudioExtraction: project.needsAudioExtraction ? "1" : "0",
+      ...getAudioProjectRouteParams(project),
     },
   });
 }

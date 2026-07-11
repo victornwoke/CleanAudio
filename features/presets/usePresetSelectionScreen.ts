@@ -29,17 +29,18 @@ const VALID_PRESET_IDS: readonly PresetId[] = [
 ];
 
 interface RouteParams {
-  projectId?: string;
-  displayName?: string;
-  mediaType?: string;
-  source?: string;
-  sourceUri?: string;
-  container?: string;
-  durationSeconds?: string;
-  sizeBytes?: string;
-  createdAt?: string;
-  needsAudioExtraction?: string;
-  presetId?: string;
+  [key: string]: string | string[];
+  projectId: string;
+  displayName: string;
+  mediaType: string;
+  source: string;
+  sourceUri: string;
+  container: string;
+  durationSeconds: string;
+  sizeBytes: string;
+  createdAt: string;
+  needsAudioExtraction: string;
+  presetId: string;
 }
 
 /**
@@ -102,23 +103,26 @@ export type PresetSelectionStatus = "loading" | "ready" | "invalid";
  * off to processing once confirmed.
  */
 export function usePresetSelectionScreen() {
-  const params: RouteParams = useLocalSearchParams();
+  const params = useLocalSearchParams<RouteParams>();
   const project = useMemo(() => parseAudioProject(params), [params]);
 
   const [recommendation, setRecommendation] = useState<PresetRecommendation | null>(null);
   const [selectedId, setSelectedId] = useState<PresetId | "auto">("auto");
-  const [recommendationLoaded, setRecommendationLoaded] = useState(false);
+  const [completedRecommendationKey, setCompletedRecommendationKey] = useState<string | null>(null);
+  const recommendationRequestKey = project
+    ? JSON.stringify([project.id, project.presetId ?? null])
+    : null;
 
   useEffect(() => {
     if (!project) return;
     let cancelled = false;
-    setRecommendationLoaded(false);
+    const requestKey = JSON.stringify([project.id, project.presetId ?? null]);
 
     getPresetRecommendation(project).then((result) => {
       if (cancelled) return;
       setRecommendation(result);
       setSelectedId(result.source === "carried_over" ? result.presetId : "auto");
-      setRecommendationLoaded(true);
+      setCompletedRecommendationKey(requestKey);
     });
 
     return () => {
@@ -136,7 +140,7 @@ export function usePresetSelectionScreen() {
 
   const status: PresetSelectionStatus = !project
     ? "invalid"
-    : recommendationLoaded
+    : completedRecommendationKey === recommendationRequestKey
       ? "ready"
       : "loading";
 

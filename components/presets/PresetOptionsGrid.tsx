@@ -45,6 +45,7 @@ export function PresetOptionsGrid({
           subtitle={preset.outcome}
           icon={preset.icon}
           selected={selectedId === preset.id}
+          idealEnvironment={preset.idealEnvironment}
           onPress={() => onSelect(preset.id)}
         />
       ))}
