@@ -28,6 +28,11 @@ let socialStrategyCache:
   | undefined;
 let socialStrategyRequest: Promise<SocialStrategyAvailability> | undefined;
 
+function cacheSocialStrategies(value: SocialStrategyAvailability): SocialStrategyAvailability {
+  socialStrategyCache = { value, expiresAt: Date.now() + SOCIAL_STRATEGY_CACHE_TTL_MS };
+  return value;
+}
+
 export function getCachedSocialStrategies(): SocialStrategyAvailability | undefined {
   if (!socialStrategyCache || socialStrategyCache.expiresAt <= Date.now()) return undefined;
   return socialStrategyCache.value;
@@ -48,11 +53,15 @@ export async function fetchEnabledSocialStrategies(): Promise<SocialStrategyAvai
   if (cached) return cached;
   if (socialStrategyRequest) return socialStrategyRequest;
 
-  const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  if (!publishableKey) return UNAVAILABLE;
+  let publishableKey: string;
+  try {
+    publishableKey = getClerkPublishableKey();
+  } catch {
+    return cacheSocialStrategies(UNAVAILABLE);
+  }
 
   const parsed = parsePublishableKey(publishableKey);
-  if (!parsed) return UNAVAILABLE;
+  if (!parsed) return cacheSocialStrategies(UNAVAILABLE);
 
   socialStrategyRequest = (async () => {
     const controller = new AbortController();
@@ -62,7 +71,7 @@ export async function fetchEnabledSocialStrategies(): Promise<SocialStrategyAvai
         `https://${parsed.frontendApi}/v1/environment?_is_native=true`,
         { signal: controller.signal }
       );
-      if (!response.ok) return UNAVAILABLE;
+      if (!response.ok) return cacheSocialStrategies(UNAVAILABLE);
 
       const environment = (await response.json()) as {
         user_settings?: {
@@ -70,17 +79,21 @@ export async function fetchEnabledSocialStrategies(): Promise<SocialStrategyAvai
         };
       };
       const social = environment.user_settings?.social;
+      if (!social?.oauth_apple || !social.oauth_google) {
+        if (__DEV__) {
+          console.warn(
+            "[auth] Clerk environment response omitted expected social OAuth settings; social sign-in is unavailable."
+          );
+        }
+        return cacheSocialStrategies(UNAVAILABLE);
+      }
       const result = {
-        apple: social?.oauth_apple?.enabled === true,
-        google: social?.oauth_google?.enabled === true,
+        apple: social.oauth_apple.enabled === true,
+        google: social.oauth_google.enabled === true,
       };
-      socialStrategyCache = {
-        value: result,
-        expiresAt: Date.now() + SOCIAL_STRATEGY_CACHE_TTL_MS,
-      };
-      return result;
+      return cacheSocialStrategies(result);
     } catch {
-      return UNAVAILABLE;
+      return cacheSocialStrategies(UNAVAILABLE);
     } finally {
       clearTimeout(timeout);
     }
