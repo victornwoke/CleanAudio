@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 
+import { goToFineTune } from "@/features/audio/audioProjectNavigation";
 import { track } from "@/lib/analytics/events";
 import type { AudioProject } from "@/types/audio";
 import type { ReviewFeedbackReason } from "@/types/review";
@@ -37,16 +38,19 @@ export interface UseReviewScreenResult {
  * every hook below can run unconditionally.
  */
 export function useReviewScreen(project: AudioProject): UseReviewScreenResult {
-  const [enhancedResult, setEnhancedResult] = useState<EnhancedAudioResult | null>(null);
-  const [isLoadingEnhancedResult, setIsLoadingEnhancedResult] = useState(true);
+  const [resolvedEnhancedResult, setEnhancedResult] = useState<{
+    projectId: string;
+    result: EnhancedAudioResult | null;
+  } | null>(null);
+  const enhancedResult =
+    resolvedEnhancedResult?.projectId === project.id ? resolvedEnhancedResult.result : null;
+  const isLoadingEnhancedResult = resolvedEnhancedResult?.projectId !== project.id;
 
   useEffect(() => {
     let cancelled = false;
-    setIsLoadingEnhancedResult(true);
     getEnhancedAudioResult(project).then((result) => {
       if (cancelled) return;
-      setEnhancedResult(result);
-      setIsLoadingEnhancedResult(false);
+      setEnhancedResult({ projectId: project.id, result });
     });
     return () => {
       cancelled = true;
@@ -84,7 +88,7 @@ export function useReviewScreen(project: AudioProject): UseReviewScreenResult {
   }
 
   function goAdjust(): void {
-    router.push({ pathname: "/fine-tune/[projectId]", params: { projectId: project.id } });
+    goToFineTune(project);
   }
 
   function goExport(): void {

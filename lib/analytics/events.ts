@@ -1,3 +1,4 @@
+import type { LoudnessTargetId } from "@/types/fineTune";
 import type { PersonaId } from "@/types/onboarding";
 import type { EnhancementAdapter } from "@/types/library";
 import type { ProcessingErrorCode, ProcessingStage } from "@/types/processing";
@@ -38,7 +39,12 @@ export type AnalyticsEvent =
   | {
       name: "review_feedback_submitted";
       properties: { reason: ReviewFeedbackReason };
-    };
+    }
+  | {
+      name: "fine_tune_applied";
+      properties: { aiEnhancementEnabled: boolean; loudnessTarget: LoudnessTargetId; adjusted: boolean };
+    }
+  | { name: "fine_tune_reset" };
 
 export function track(event: AnalyticsEvent): void {
   if (__DEV__) {

@@ -76,7 +76,14 @@ export function parseAudioProjectParams(params: AudioProjectRouteParams): AudioP
 
   const durationSecondsNum =
     durationSeconds && durationSeconds.length > 0 ? Number(durationSeconds) : null;
-  if (durationSecondsNum !== null && !Number.isFinite(durationSecondsNum)) return null;
+  if (
+    durationSecondsNum !== null &&
+    (!Number.isFinite(durationSecondsNum) || durationSecondsNum < 0)
+  ) {
+    return null;
+  }
+
+  if (needsAudioExtraction !== "0" && needsAudioExtraction !== "1") return null;
 
   return {
     id: projectId,

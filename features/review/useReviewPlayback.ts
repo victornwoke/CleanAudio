@@ -57,7 +57,9 @@ export function useReviewPlayback(
   const enhancedAvailable = enhanced !== null;
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/immutability
     originalPlayer.muted = isMuted;
+    // eslint-disable-next-line react-hooks/immutability
     enhancedPlayer.muted = isMuted;
   }, [isMuted, originalPlayer, enhancedPlayer]);
 

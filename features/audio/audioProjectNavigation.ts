@@ -61,6 +61,24 @@ export function goToProcessing(project: AudioProject, presetId: PresetId): void 
 }
 
 /**
+ * Hand-off from the before/after review screen to manual fine-tune
+ * (`prompts/11-manual-fine-tune.md`). Forwards the full `AudioProject`, not
+ * just `projectId` — a bare id was enough for the `prompts/03` placeholder
+ * this replaces, but left the real screen with no `sourceUri` to preview or
+ * reconstruct a project from, the same class of hand-off bug already fixed
+ * once for Processing → Review (see `docs/implementation-status.md`).
+ */
+export function goToFineTune(project: AudioProject): void {
+  router.push({
+    pathname: "/fine-tune/[projectId]",
+    params: {
+      projectId: project.id,
+      ...getAudioProjectRouteParams(project),
+    },
+  });
+}
+
+/**
  * Hand-off from processing to the before/after review screen
  * (`prompts/10-before-after-review.md`). The review screen reconstructs
  * the full `AudioProject` the same way `presets.tsx`/the processing screen

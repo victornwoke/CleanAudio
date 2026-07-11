@@ -34,11 +34,16 @@ export function useProcessingScreen(jobId: string): UseProcessingScreenResult {
 
   const [notifyOptedIn, setNotifyOptedIn] = useState(false);
   const notificationPreferenceMutatedRef = useRef(false);
+  const notificationPreferenceMutationIdRef = useRef(0);
   useEffect(() => {
     let cancelled = false;
-    getJobNotificationOptIn().then((value) => {
-      if (!cancelled && !notificationPreferenceMutatedRef.current) setNotifyOptedIn(value);
-    });
+    void getJobNotificationOptIn()
+      .then((value) => {
+        if (!cancelled && !notificationPreferenceMutatedRef.current) setNotifyOptedIn(value);
+      })
+      .catch(() => {
+        // Keep the safe default when persisted preferences cannot be read.
+      });
     return () => {
       cancelled = true;
     };
@@ -46,10 +51,19 @@ export function useProcessingScreen(jobId: string): UseProcessingScreenResult {
 
   function toggleNotifyOptIn(): void {
     notificationPreferenceMutatedRef.current = true;
-    const next = !notifyOptedIn;
+    const mutationId = ++notificationPreferenceMutationIdRef.current;
+    const previous = notifyOptedIn;
+    const next = !previous;
     setNotifyOptedIn(next);
-    void setJobNotificationOptIn(next);
-    track({ name: "processing_notify_opt_in_changed", properties: { optedIn: next } });
+    void setJobNotificationOptIn(next)
+      .then(() => {
+        track({ name: "processing_notify_opt_in_changed", properties: { optedIn: next } });
+      })
+      .catch(() => {
+        if (notificationPreferenceMutationIdRef.current !== mutationId) return;
+        setNotifyOptedIn(previous);
+        notificationPreferenceMutatedRef.current = false;
+      });
   }
 
   function retryToSamePreset(): void {

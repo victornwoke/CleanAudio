@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PanResponder, StyleSheet, View, type LayoutChangeEvent } from "react-native";
 
 import { WaveformPlaceholder, type WaveformState } from "@/components/audio/WaveformPlaceholder";
@@ -46,8 +46,20 @@ export function CompareTimeline({
 }: CompareTimelineProps) {
   const [containerWidth, setContainerWidth] = useState(0);
   const [dragFraction, setDragFraction] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const visibleFraction = dragFraction ?? progress;
+
+  useEffect(() => {
+    if (
+      !isDragging &&
+      dragFraction !== null &&
+      Math.abs(progress - dragFraction) <= 0.005
+    ) {
+      const timeout = setTimeout(() => setDragFraction(null), 0);
+      return () => clearTimeout(timeout);
+    }
+  }, [dragFraction, isDragging, progress]);
 
   function handleLayout(event: LayoutChangeEvent) {
     setContainerWidth(event.nativeEvent.layout.width);
@@ -57,6 +69,7 @@ export function CompareTimeline({
     onStartShouldSetPanResponder: () => !disabled && containerWidth > 0,
     onMoveShouldSetPanResponder: () => !disabled && containerWidth > 0,
     onPanResponderGrant: (event) => {
+      setIsDragging(true);
       const fraction = clamp(event.nativeEvent.locationX / containerWidth, 0, 1);
       setDragFraction(fraction);
     },
@@ -66,10 +79,14 @@ export function CompareTimeline({
     },
     onPanResponderRelease: (event) => {
       const fraction = clamp(event.nativeEvent.locationX / containerWidth, 0, 1);
-      setDragFraction(null);
+      setIsDragging(false);
+      setDragFraction(fraction);
       onScrub(fraction);
     },
-    onPanResponderTerminate: () => setDragFraction(null),
+    onPanResponderTerminate: () => {
+      setIsDragging(false);
+      if (dragFraction !== null) onScrub(dragFraction);
+    },
   });
 
   function handleAccessibilityAction(actionName: string) {

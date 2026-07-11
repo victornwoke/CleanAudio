@@ -10,6 +10,8 @@ export * from "./common/EmptyState";
 export * from "./common/ErrorState";
 export * from "./common/BottomSheet";
 export * from "./common/InlineBanner";
+export * from "./common/Slider";
+export * from "./common/AppSwitch";
 export * from "./audio/WaveformPlaceholder";
 export * from "./audio/DemoPlaybackCard";
 export * from "./audio/LevelMeter";

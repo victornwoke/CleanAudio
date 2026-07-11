@@ -44,7 +44,7 @@ export default function RootLayout() {
         <Stack.Screen name="presets" options={{ headerShown: false }} />
         <Stack.Screen name="processing/[jobId]" options={{ headerShown: false }} />
         <Stack.Screen name="review/[projectId]" options={{ headerShown: false }} />
-        <Stack.Screen name="fine-tune/[projectId]" options={{ title: "Fine-Tune" }} />
+        <Stack.Screen name="fine-tune/[projectId]" options={{ headerShown: false }} />
         <Stack.Screen name="export/[projectId]" options={{ title: "Export" }} />
         <Stack.Screen name="file/[projectId]" options={{ title: "File Details" }} />
         <Stack.Screen
