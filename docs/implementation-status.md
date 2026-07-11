@@ -9,7 +9,7 @@ Status values: `not-started` | `in-progress` | `blocked` | `verified`. Updated b
 | Repository audit (`prompts/00`) | verified | `docs/project-audit.md` produced; `tsc`, `expo lint`, `expo-doctor` all pass; no screen changed. |
 | Architecture boundaries (`components/`, `constants/`, `features/`, `hooks/`, `lib/`, `services/`, `store/`, `types/`, `docs/`) | verified | Created empty with a one-line README each; populated by later prompts. |
 | `.env.example` | verified | Variable names only, matches `AGENTS.md` §18. |
-| type-check / lint / test / verify scripts | verified | `npm run typecheck`, `npm run lint`, `npm run test`, `npm run verify`. `test` is a placeholder — no test runner is installed yet. |
+| type-check / lint / test / verify scripts | verified | `npm run typecheck`, `npm run lint`, `npm run test`, `npm run verify`. Node's built-in test runner covers audio routing and prompt-16 backend security contracts. |
 
 ## P0 — MVP launch blocking (PRD §14, §37)
 
@@ -29,7 +29,7 @@ Status values: `not-started` | `in-progress` | `blocked` | `verified`. Updated b
 | History & file detail (`prompts/13`) | in-progress | History tab and full immutable file-detail/version UI implemented; persistence, real adapters, and confirmed cloud deletion await prompts 14–16. See notes below. |
 | Zustand & local data (`prompts/14`) | verified | Zustand stores, explicit versioned hydration, narrow selectors, and typed local repository boundaries are implemented. The current repository implementation is intentionally in-memory pending an approved SQLite package; see notes below. |
 | Audio domain & adapters (`prompts/15`) | verified | Production contracts, capability routing, unavailable native/cloud seams, and an explicitly opt-in bundled-demo-only development adapter are implemented. No real DSP module or backend exists, so user media enhancement remains unavailable rather than faked. See notes below. |
-| Backend cloud sync & jobs (`prompts/16`) | not-started | No backend integration exists. |
+| Backend cloud sync & jobs (`prompts/16`) | in-progress | Secure transport-neutral contracts, mobile client seam, reference backend, signed-transfer recovery, bounded polling, sync retry/tombstones/conflicts, safe notification payloads, and security tests are implemented. A deployed server/storage/queue is still required. See notes below. |
 | RevenueCat subscriptions (`prompts/17`) | not-started | RevenueCat not installed. |
 
 ## P1 / infra (tracked for visibility, not launch-blocking per PRD §14)
@@ -50,6 +50,15 @@ Status values: `not-started` | `in-progress` | `blocked` | `verified`. Updated b
 - See `docs/project-audit.md` §8 for PRD requirements (real-time call enhancement, on-device ML inference, shared C++ DSP core) that will require custom native modules rather than ordinary Expo/React Native JavaScript when their turn comes.
 - **The structured project/version repository is currently in-memory, not SQLite or cloud-synced.** Prompt 14 now owns the typed repository contracts and the library writes through that boundary, but no SQLite option is installed or approved in the repository. `features/library/sampleLibraryData.ts` remains the development seed so the existing catalog UI stays populated; its processed entries remain illustrative and are not claims of real enhancement. A later persistence decision can replace `createInMemoryLocalRepositories()` without changing store consumers; cloud sync remains prompt 16.
 - **Import from a native OS share extension is not implemented.** `prompts/07`'s Import UI spec lists "import from share extension where supported" as a should-have. A genuine entry in other apps' share sheets requires a native iOS Share Extension target (config plugin + Xcode target) or Android intent-filter beyond ordinary Expo/RN JavaScript, and no approved package for this exists in `AGENTS.md`'s stack. Not built in this pass — flagged rather than faked with a non-functional row.
+
+## `prompts/16-backend-cloud-sync-and-jobs.md` — verification notes (2026-07-11)
+
+- Added strict cloud types and a transport-neutral backend contract for all required upload, enhancement-job, project, export, account-deletion, and RevenueCat-webhook domains. `BACKEND_ROUTES` records the required REST mapping without inventing a server framework that is absent from this repository.
+- Added a secure executable reference backend: Clerk JWT verification dependency, owner checks with non-enumerating `not_found` responses, metadata validation (content type/size/checksum/duration), five-minute signed uploads, cloud-entitlement checks, job rate limiting, atomic in-process idempotency, optimistic project revisions, deletion tombstones, and idempotent account deletion.
+- Added the mobile client seam, one-time expired-signed-URL refresh, bounded exponential polling, retry queue/backoff, explicit server-wins metadata conflict handling that preserves local media, and strict OneSignal completion payload parsing with opaque IDs only.
+- The existing account deletion handoff now calls an injected authenticated backend and still fails honestly when none is configured. No SDK, secret, native module, or UI was added; no native rebuild is required. Prompt 16 names no visual references.
+- Runtime tests cover cross-user denial across read/update/delete/upload/job creation, concurrent duplicate job idempotency, expired URL recovery, and rejection of private notification fields. `npm test` passes all audio and backend tests.
+- Honest limitation: this Expo repository contains no Go/Python/server framework, database, object storage, queue, worker, or deployment configuration. The reference backend is deliberately in-memory and is not mounted as a production HTTP server. Production must implement the same interfaces with atomic database uniqueness constraints, a Clerk server verifier, RevenueCat webhook secret storage, durable entitlement state, rate-limit storage, short-lived object-storage signing, queue workers, and OneSignal delivery.
 
 ## `prompts/15-audio-domain-and-adapters.md` — verification notes (2026-07-11)
 
