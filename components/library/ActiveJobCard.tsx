@@ -47,6 +47,20 @@ function IndeterminateTrack() {
   );
 }
 
+function DeterminateTrack({ progress }: { progress: number }) {
+  const clampedProgress = Math.min(1, Math.max(0, progress));
+
+  return (
+    <View
+      accessibilityRole="progressbar"
+      accessibilityValue={{ min: 0, max: 100, now: Math.round(clampedProgress * 100) }}
+      style={styles.track}
+    >
+      <View style={[styles.determinateProgress, { width: `${clampedProgress * 100}%` }]} />
+    </View>
+  );
+}
+
 export function ActiveJobCard({ project, onCancel }: ActiveJobCardProps) {
   const statusLabel = project.processingState === "queued" ? "Queued" : "Processing…";
 
@@ -69,7 +83,11 @@ export function ActiveJobCard({ project, onCancel }: ActiveJobCardProps) {
           onPress={() => onCancel(project.id)}
         />
       </View>
-      <IndeterminateTrack />
+      {project.processingProgress === undefined ? (
+        <IndeterminateTrack />
+      ) : (
+        <DeterminateTrack progress={project.processingProgress} />
+      )}
     </AppCard>
   );
 }
@@ -97,6 +115,11 @@ const styles = StyleSheet.create({
   },
   highlight: {
     width: "40%",
+    height: "100%",
+    borderRadius: componentRadii.badge,
+    backgroundColor: colors.primary,
+  },
+  determinateProgress: {
     height: "100%",
     borderRadius: componentRadii.badge,
     backgroundColor: colors.primary,

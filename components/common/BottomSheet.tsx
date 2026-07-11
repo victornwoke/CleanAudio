@@ -1,4 +1,4 @@
-import { Modal, Pressable, StyleSheet, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors } from "../../constants/colors";
@@ -32,29 +32,37 @@ export function BottomSheet({ visible, onClose, title, children }: BottomSheetPr
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Dismiss"
-        style={styles.backdrop}
-        onPress={onClose}
-      />
-      <View
-        accessibilityViewIsModal
-        style={[styles.sheet, { paddingBottom: insets.bottom + spacing.md }]}
+      <KeyboardAvoidingView
+        style={styles.modalContent}
+        behavior={process.env.EXPO_OS === "ios" ? "padding" : "height"}
       >
-        <View style={styles.handle} />
-        {title ? (
-          <AppText variant="heading" style={styles.title}>
-            {title}
-          </AppText>
-        ) : null}
-        {children}
-      </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss"
+          style={styles.backdrop}
+          onPress={onClose}
+        />
+        <View
+          accessibilityViewIsModal
+          style={[styles.sheet, { paddingBottom: insets.bottom + spacing.md }]}
+        >
+          <View style={styles.handle} />
+          {title ? (
+            <AppText variant="heading" style={styles.title}>
+              {title}
+            </AppText>
+          ) : null}
+          {children}
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  modalContent: {
+    flex: 1,
+  },
   backdrop: {
     flex: 1,
     backgroundColor: colors.overlay,

@@ -1,6 +1,6 @@
 import { useUser } from "@clerk/expo";
 import { router } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -16,7 +16,6 @@ import { QuickActionsRow } from "@/components/library/QuickActionsRow";
 import { RenameProjectSheet } from "@/components/library/RenameProjectSheet";
 import { AppText } from "@/components/common/AppText";
 import { EmptyState } from "@/components/common/EmptyState";
-import { ErrorState } from "@/components/common/ErrorState";
 import { InlineBanner } from "@/components/common/InlineBanner";
 import { colors } from "@/constants/colors";
 import { iconNames } from "@/constants/images";
@@ -42,6 +41,7 @@ export default function LibraryScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useUser();
   const library = useLibraryScreen();
+  const { deleteProject } = library;
   const [overflowProject, setOverflowProject] = useState<LibraryProject | null>(null);
   const [renameProject, setRenameProject] = useState<LibraryProject | null>(null);
 
@@ -54,23 +54,96 @@ export default function LibraryScreen() {
     router.push(`/file/${project.id}`);
   }, []);
 
-  function handleQuickAction(key: string) {
+  const handleQuickAction = useCallback((key: string) => {
     const route = QUICK_ACTION_ROUTES[key];
     if (!route) return;
     router.push({ pathname: route.pathname, params: { presetId: route.presetId } });
-  }
+  }, []);
 
-  function handleDelete(project: LibraryProject) {
+  const handleDelete = useCallback((project: LibraryProject) => {
     setOverflowProject(null);
     Alert.alert("Delete file?", getDeleteConsequenceMessage(project), [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",
         style: "destructive",
-        onPress: () => library.deleteProject(project.id),
+        onPress: () => deleteProject(project.id),
       },
     ]);
-  }
+  }, [deleteProject]);
+
+  const header = useMemo(
+    () => (
+      <View style={styles.headerSection}>
+        <LibraryHeader
+          firstName={firstName}
+          avatarInitial={avatarInitial}
+          onAvatarPress={() => router.push("/(tabs)/settings")}
+        />
+
+        {library.usage ? <PlanUsageIndicator usage={library.usage} /> : null}
+
+        {library.isOffline ? (
+          <InlineBanner
+            icon={iconNames.offline}
+            title="You're offline"
+            description="New files will sync once you're back online."
+            variant="offline"
+          />
+        ) : null}
+
+        {library.storageWarning ? (
+          <InlineBanner
+            icon={iconNames.warning}
+            title="Storage almost full"
+            description="Free up space or upgrade your cloud storage plan."
+            variant="warning"
+            actionLabel="Manage"
+            onAction={() => router.push("/(tabs)/settings")}
+          />
+        ) : null}
+
+        <LibraryActions
+          onImport={() => router.push("/import")}
+          onRecord={() => router.push("/record")}
+        />
+
+        <QuickActionsRow onSelect={handleQuickAction} />
+
+        {library.activeJobs.length > 0 ? (
+          <View style={styles.activeJobsSection}>
+            <AppText variant="heading">Active Jobs</AppText>
+            {library.activeJobs.map((job) => (
+              <ActiveJobCard key={job.id} project={job} onCancel={library.cancelJob} />
+            ))}
+          </View>
+        ) : null}
+
+        {!library.isEmpty ? (
+          <View style={styles.librarySection}>
+            <AppText variant="heading">Recent Files</AppText>
+            <LibrarySearchBar value={library.searchQuery} onChangeText={library.setSearchQuery} />
+            <LibraryFilterPills value={library.filter} onChange={library.setFilter} />
+          </View>
+        ) : null}
+      </View>
+    ),
+    [
+      avatarInitial,
+      firstName,
+      handleQuickAction,
+      library.activeJobs,
+      library.cancelJob,
+      library.filter,
+      library.isEmpty,
+      library.isOffline,
+      library.searchQuery,
+      library.setFilter,
+      library.setSearchQuery,
+      library.storageWarning,
+      library.usage,
+    ],
+  );
 
   if (library.status === "loading") {
     return (
@@ -82,74 +155,6 @@ export default function LibraryScreen() {
       </View>
     );
   }
-
-  if (library.status === "error") {
-    return (
-      <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <ErrorState
-          title="Couldn't load your library"
-          description="Something went wrong loading your files. Your recordings are safe on this device."
-          onRetry={library.retryLoad}
-        />
-      </View>
-    );
-  }
-
-  const header = (
-    <View style={styles.headerSection}>
-      <LibraryHeader
-        firstName={firstName}
-        avatarInitial={avatarInitial}
-        onAvatarPress={() => router.push("/(tabs)/settings")}
-      />
-
-      {library.usage ? <PlanUsageIndicator usage={library.usage} /> : null}
-
-      {library.isOffline ? (
-        <InlineBanner
-          icon={iconNames.offline}
-          title="You're offline"
-          description="New files will sync once you're back online."
-          variant="offline"
-        />
-      ) : null}
-
-      {library.storageWarning ? (
-        <InlineBanner
-          icon={iconNames.warning}
-          title="Storage almost full"
-          description="Free up space or upgrade your cloud storage plan."
-          variant="warning"
-          actionLabel="Manage"
-          onAction={() => router.push("/(tabs)/settings")}
-        />
-      ) : null}
-
-      <LibraryActions
-        onImport={() => router.push("/import")}
-        onRecord={() => router.push("/record")}
-      />
-
-      <QuickActionsRow onSelect={handleQuickAction} />
-
-      {library.activeJobs.length > 0 ? (
-        <View style={styles.activeJobsSection}>
-          <AppText variant="heading">Active Jobs</AppText>
-          {library.activeJobs.map((job) => (
-            <ActiveJobCard key={job.id} project={job} onCancel={library.cancelJob} />
-          ))}
-        </View>
-      ) : null}
-
-      {!library.isEmpty ? (
-        <View style={styles.librarySection}>
-          <AppText variant="heading">Recent Files</AppText>
-          <LibrarySearchBar value={library.searchQuery} onChangeText={library.setSearchQuery} />
-          <LibraryFilterPills value={library.filter} onChange={library.setFilter} />
-        </View>
-      ) : null}
-    </View>
-  );
 
   if (library.isEmpty) {
     return (

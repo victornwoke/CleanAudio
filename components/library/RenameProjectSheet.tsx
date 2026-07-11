@@ -26,7 +26,9 @@ function RenameForm({ project, onClose, onSave }: RenameFormProps) {
   const [name, setName] = useState(project.displayName);
 
   function handleSave() {
-    onSave(project.id, name);
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+    onSave(project.id, trimmedName);
     onClose();
   }
 

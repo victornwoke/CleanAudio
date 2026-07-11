@@ -4,7 +4,9 @@ import { filterProjects, isActiveJob, sortByRecency } from "@/features/library/l
 import { SAMPLE_LIBRARY_PROJECTS } from "@/features/library/sampleLibraryData";
 import type { LibraryFilter, LibraryProject } from "@/types/library";
 
-export type LibraryLoadStatus = "loading" | "loaded" | "error";
+export type LibraryLoadStatus = "loading" | "loaded";
+
+let duplicateSequence = 0;
 
 export interface LibraryUsage {
   planLabel: string;
@@ -43,7 +45,6 @@ export interface UseLibraryScreenResult {
   /** `undefined` until RevenueCat (`prompts/17`) supplies real usage — the
    * indicator only renders "when available" per the prompt's own wording. */
   usage: LibraryUsage | undefined;
-  retryLoad: () => void;
   cancelJob: (id: string) => void;
   retryFailed: (id: string) => void;
   renameProject: (id: string, displayName: string) => void;
@@ -56,29 +57,19 @@ export function useLibraryScreen(): UseLibraryScreenResult {
   const [projects, setProjects] = useState<LibraryProject[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<LibraryFilter>("all");
-  const [loadToken, setLoadToken] = useState(0);
-
   useEffect(() => {
     let cancelled = false;
-    setStatus("loading");
 
-    loadProjects()
-      .then((loaded) => {
-        if (cancelled) return;
-        setProjects(loaded);
-        setStatus("loaded");
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setStatus("error");
-      });
+    loadProjects().then((loaded) => {
+      if (cancelled) return;
+      setProjects(loaded);
+      setStatus("loaded");
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [loadToken]);
-
-  const retryLoad = useCallback(() => setLoadToken((token) => token + 1), []);
+  }, []);
 
   const activeJobs = useMemo(
     () => sortByRecency(projects.filter(isActiveJob)),
@@ -124,13 +115,16 @@ export function useLibraryScreen(): UseLibraryScreenResult {
       if (!source) return current;
       const duplicate: LibraryProject = {
         ...source,
-        id: `${source.id}_copy_${Date.now()}`,
+        id: `${source.id}_copy_${Date.now()}_${duplicateSequence++}`,
         displayName: `${source.displayName.replace(/(\.[^./]+)$/, "")} Copy${
           source.displayName.match(/(\.[^./]+)$/)?.[0] ?? ""
         }`,
         createdAt: new Date().toISOString(),
         exportStatus: "not_exported",
         syncState: "local_only",
+        processingState: "not_processed",
+        processingProgress: undefined,
+        adapterUsed: undefined,
       };
       return [duplicate, ...current];
     });
@@ -153,7 +147,6 @@ export function useLibraryScreen(): UseLibraryScreenResult {
     isOffline: false,
     storageWarning: false,
     usage: undefined,
-    retryLoad,
     cancelJob,
     retryFailed,
     renameProject,
