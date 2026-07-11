@@ -2,6 +2,7 @@ import { router } from "expo-router";
 
 import type { AudioProject } from "@/types/audio";
 import type { PresetId } from "@/types/onboarding";
+import { handoffExportProject } from "@/features/export/exportProjectHandoff";
 
 function getAudioProjectRouteParams(project: AudioProject) {
   return {
@@ -103,18 +104,13 @@ export function goToReview(project: AudioProject, options?: { replace?: boolean 
 
 /**
  * Hand-off from the before/after review screen to export
- * (`prompts/12-export-and-success.md`). Forwards the full `AudioProject`,
- * not just `projectId` — the same bare-id hand-off bug already caught and
- * fixed once for every other screen transition in this app (see
- * `docs/implementation-status.md`); a bare id here would leave the export
- * screen with no `sourceUri` to reconstruct a project from.
+ * (`prompts/12-export-and-success.md`). Export hydrates the project from the
+ * shared repository, keeping media metadata out of navigation URLs.
  */
 export function goToExport(project: AudioProject): void {
+  handoffExportProject(project);
   router.push({
     pathname: "/export/[projectId]",
-    params: {
-      projectId: project.id,
-      ...getAudioProjectRouteParams(project),
-    },
+    params: { projectId: project.id },
   });
 }

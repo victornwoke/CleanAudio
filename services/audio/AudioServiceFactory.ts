@@ -8,9 +8,6 @@ import { selectEnhancementRoute } from "./enhancementRoutingPolicy";
 export interface AudioServiceFactoryOptions {
   native?: EnhancementService;
   cloud?: EnhancementService;
-  /** Must be explicitly true; production builds reject this option. */
-  enableDevelopmentMock?: boolean;
-  environment?: "development" | "test" | "production";
 }
 
 export class AudioServiceFactory {
@@ -21,16 +18,12 @@ export class AudioServiceFactory {
   constructor(options: AudioServiceFactoryOptions = {}) {
     this.native = options.native ?? new NativeEnhancementAdapter();
     this.cloud = options.cloud ?? new CloudEnhancementAdapter();
-    const environment = options.environment ?? "production";
-    if (environment === "production" && options.enableDevelopmentMock) {
-      throw new AudioDomainError("sdk_unavailable", "Development audio mocks are disabled in production.");
-    }
-    this.developmentMock = options.enableDevelopmentMock ? new DevelopmentMockAdapter() : null;
+    this.developmentMock = __DEV__ ? new DevelopmentMockAdapter() : null;
   }
 
   getDevelopmentMock(): EnhancementService {
     if (!this.developmentMock) {
-      throw new AudioDomainError("sdk_unavailable", "Development audio mock was not explicitly enabled.");
+      throw new AudioDomainError("sdk_unavailable", "Development audio mocks are disabled in production builds.");
     }
     return this.developmentMock;
   }

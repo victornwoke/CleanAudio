@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { listProjectHistories } from "@/features/history/historyCatalog";
 import type { MediaType } from "@/types/library";
@@ -11,14 +11,18 @@ export function useHistoryScreen() {
   const [items, setItems] = useState<ProjectHistory[]>([]);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<HistoryFilter>("all");
+  const generation = useRef(0);
 
-  useEffect(() => {
-    let active = true;
-    listProjectHistories()
-      .then((result) => { if (active) { setItems(result); setStatus("loaded"); } })
-      .catch(() => { if (active) setStatus("error"); });
-    return () => { active = false; };
+  const reload = useCallback(async () => {
+    const request = ++generation.current;
+    setStatus("loading");
+    try {
+      const result = await listProjectHistories();
+      if (request === generation.current) { setItems(result); setStatus("loaded"); }
+    } catch { if (request === generation.current) setStatus("error"); }
   }, []);
+
+  useEffect(() => { void reload(); return () => { generation.current += 1; }; }, [reload]);
 
   const visibleItems = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase();
@@ -28,5 +32,5 @@ export function useHistoryScreen() {
       .sort((a, b) => Date.parse(b.project.createdAt) - Date.parse(a.project.createdAt));
   }, [filter, items, query]);
 
-  return { status, visibleItems, query, setQuery, filter, setFilter };
+  return { status, visibleItems, query, setQuery, filter, setFilter, reload };
 }

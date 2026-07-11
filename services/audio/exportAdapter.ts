@@ -63,6 +63,13 @@ async function runExport(jobId: string, request: ExportRequest, record: JobRecor
   const sourceExtension = getFileExtension(request.sourceUri);
 
   try {
+    const qualityMatchesFormat = request.settings.qualityId.startsWith(`${request.settings.format}_`);
+    if (!qualityMatchesFormat) {
+      record.status = "failed";
+      record.errorCode = "unsupported_format";
+      notify(jobId, record);
+      return;
+    }
     if (!source.exists) {
       record.status = "failed";
       record.errorCode = "export_failed";
@@ -83,6 +90,16 @@ async function runExport(jobId: string, request: ExportRequest, record: JobRecor
       }
       record.status = "failed";
       record.errorCode = "unsupported_format";
+      notify(jobId, record);
+      return;
+    }
+
+    const isUnmodifiedCopy = request.settings.qualityId === (request.settings.format === "mp3" ? "mp3_128" : "wav_16")
+      && request.settings.loudnessTarget === "podcast"
+      && !request.settings.removeWatermark;
+    if (!isUnmodifiedCopy) {
+      record.status = "failed";
+      record.errorCode = "sdk_unavailable";
       notify(jobId, record);
       return;
     }

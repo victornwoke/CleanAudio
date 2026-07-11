@@ -4,7 +4,7 @@ import { filterProjects, isActiveJob, sortByRecency } from "@/features/library/l
 import { useProjectStore } from "@/store/useProjectStore";
 import type { LibraryFilter, LibraryProject } from "@/types/library";
 
-export type LibraryLoadStatus = "loading" | "loaded";
+export type LibraryLoadStatus = "loading" | "loaded" | "error";
 
 let duplicateSequence = 0;
 
@@ -45,6 +45,7 @@ export interface UseLibraryScreenResult {
   renameProject: (id: string, displayName: string) => void;
   duplicateProject: (id: string) => void;
   deleteProject: (id: string) => void;
+  mutationError: string | null;
 }
 
 export function useLibraryScreen(): UseLibraryScreenResult {
@@ -53,9 +54,14 @@ export function useLibraryScreen(): UseLibraryScreenResult {
   const load = useProjectStore((state) => state.load);
   const upsert = useProjectStore((state) => state.upsert);
   const remove = useProjectStore((state) => state.remove);
-  const status: LibraryLoadStatus = repositoryStatus === "ready" || repositoryStatus === "error" ? "loaded" : "loading";
+  const status: LibraryLoadStatus = repositoryStatus === "ready" ? "loaded" : repositoryStatus === "error" ? "error" : "loading";
   const [searchQuery, setSearchQuery] = useState("");
+  const [mutationError, setMutationError] = useState<string | null>(null);
   const [filter, setFilter] = useState<LibraryFilter>("all");
+  const mutate = useCallback(async (operation: () => Promise<void>) => {
+    setMutationError(null);
+    try { await operation(); } catch { setMutationError("Your change couldn’t be saved. Please try again."); }
+  }, []);
   useEffect(() => {
     if (repositoryStatus === "idle") void load();
   }, [load, repositoryStatus]);
@@ -72,20 +78,20 @@ export function useLibraryScreen(): UseLibraryScreenResult {
 
   const cancelJob = useCallback((id: string) => {
     const project = projects.find((item) => item.id === id);
-    if (project && isActiveJob(project)) void upsert({ ...project, processingState: "cancelled", processingProgress: undefined });
-  }, [projects, upsert]);
+    if (project && isActiveJob(project)) void mutate(() => upsert({ ...project, processingState: "cancelled", processingProgress: undefined }));
+  }, [mutate, projects, upsert]);
 
   const retryFailed = useCallback((id: string) => {
     const project = projects.find((item) => item.id === id);
-    if (project?.processingState === "failed") void upsert({ ...project, processingState: "queued" });
-  }, [projects, upsert]);
+    if (project?.processingState === "failed") void mutate(() => upsert({ ...project, processingState: "queued" }));
+  }, [mutate, projects, upsert]);
 
   const renameProject = useCallback((id: string, displayName: string) => {
     const trimmed = displayName.trim();
     if (!trimmed) return;
     const project = projects.find((item) => item.id === id);
-    if (project) void upsert({ ...project, displayName: trimmed });
-  }, [projects, upsert]);
+    if (project) void mutate(() => upsert({ ...project, displayName: trimmed }));
+  }, [mutate, projects, upsert]);
 
   const duplicateProject = useCallback((id: string) => {
       const source = projects.find((project) => project.id === id);
@@ -103,12 +109,21 @@ export function useLibraryScreen(): UseLibraryScreenResult {
         processingProgress: undefined,
         adapterUsed: undefined,
       };
-      void upsert(duplicate);
-  }, [projects, upsert]);
+      void mutate(async () => {
+        const { localRepositories } = await import("@/services/repositories");
+        await localRepositories.mediaFiles.cloneOwnedFiles(source.id, duplicate.id);
+        try {
+          await useProjectStore.getState().upsert(duplicate);
+        } catch (error) {
+          try { await localRepositories.mediaFiles.deleteOwnedFiles(duplicate.id); } catch { /* best-effort rollback */ }
+          throw error;
+        }
+      });
+  }, [mutate, projects]);
 
   const deleteProject = useCallback((id: string) => {
-    void remove(id);
-  }, [remove]);
+    void mutate(() => remove(id));
+  }, [mutate, remove]);
 
   return {
     status,
@@ -128,5 +143,6 @@ export function useLibraryScreen(): UseLibraryScreenResult {
     renameProject,
     duplicateProject,
     deleteProject,
+    mutationError,
   };
 }

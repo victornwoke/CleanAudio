@@ -1,8 +1,8 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { selectEnhancementRoute } = require("/tmp/cleanaudio-domain-tests/services/audio/enhancementRoutingPolicy.js");
-const { AudioDomainError } = require("/tmp/cleanaudio-domain-tests/types/audioDomainError.js");
+const { selectEnhancementRoute } = require("../../.test-build/services/audio/enhancementRoutingPolicy.js");
+const { AudioDomainError } = require("../../.test-build/types/audioDomainError.js");
 
 const request = {
   projectId: "project-1",

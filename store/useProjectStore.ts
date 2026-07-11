@@ -24,13 +24,23 @@ export const useProjectStore = create<ProjectState>((set) => ({
   },
   setActiveProjectId: (activeProjectId) => set({ activeProjectId }),
   upsert: async (project) => {
-    await localRepositories.projects.upsert(project);
-    set((state) => ({ projects: [project, ...state.projects.filter((item) => item.id !== project.id)] }));
+    try {
+      await localRepositories.projects.upsert(project);
+      set((state) => ({ projects: [project, ...state.projects.filter((item) => item.id !== project.id)], loadState: "ready" }));
+    } catch (error) {
+      set({ loadState: "error" });
+      throw error;
+    }
   },
   remove: async (id) => {
-    await localRepositories.mediaFiles.deleteOwnedFiles(id);
-    await localRepositories.projects.remove(id);
-    set((state) => ({ projects: state.projects.filter((item) => item.id !== id), activeProjectId: state.activeProjectId === id ? null : state.activeProjectId }));
+    try {
+      await localRepositories.projects.remove(id);
+      set((state) => ({ projects: state.projects.filter((item) => item.id !== id), activeProjectId: state.activeProjectId === id ? null : state.activeProjectId, loadState: "ready" }));
+    } catch (error) {
+      set({ loadState: "error" });
+      throw error;
+    }
+    try { await localRepositories.mediaFiles.deleteOwnedFiles(id); } catch { /* Project is safely removed; orphan cleanup is best effort. */ }
   },
 }));
 

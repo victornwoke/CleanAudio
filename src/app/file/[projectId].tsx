@@ -99,7 +99,7 @@ function ResolvedFileDetail({ projectId }: { projectId: string }) {
       <AppButton label="Delete file" variant="ghost" icon={iconNames.delete} onPress={() => setDeleting(true)} />
 
       <RenameProjectSheet project={renaming ? project : null} onClose={() => setRenaming(false)} onSave={rename} />
-      <DeleteSheet visible={deleting} history={history} onClose={() => setDeleting(false)} />
+      <DeleteSheet visible={deleting} history={history} onClose={() => setDeleting(false)} onPartial={reload} />
     </AppScreen>
   );
 }
@@ -129,7 +129,7 @@ function Action({ icon, label, disabled, onPress }: { icon: React.ComponentProps
   return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={[styles.action, disabled && styles.disabled]}><Ionicons name={icon} size={22} color={colors.primary} /><AppText variant="captionStrong" align="center">{label}</AppText></Pressable>;
 }
 
-function DeleteSheet({ visible, history, onClose }: { visible: boolean; history: ProjectHistory; onClose: () => void }) {
+function DeleteSheet({ visible, history, onClose, onPartial }: { visible: boolean; history: ProjectHistory; onClose: () => void; onPartial: () => Promise<void> }) {
   const remove = async (scope: DeleteScope) => {
     const result = await deleteHistoryProject(history.project.id, scope);
     onClose();
@@ -138,6 +138,7 @@ function DeleteSheet({ visible, history, onClose }: { visible: boolean; history:
       else router.replace("/(tabs)/history");
       return;
     }
+    if (result.status === "partial") await onPartial();
     Alert.alert(result.status === "partial" ? "Partially deleted" : "Couldn’t delete", result.message);
   };
   return <BottomSheet visible={visible} onClose={onClose} title="Delete options"><View style={styles.deleteOptions}>

@@ -113,6 +113,22 @@ export function useExportScreen(project: AudioProject): UseExportScreenResult {
     ? null
     : "Export needs a completed enhanced version of this recording.";
 
+  const handleSnapshot = useCallback((snapshot: ExportJobSnapshot) => {
+    setJob(snapshot);
+    if (snapshot.status === "completed" && hasTrackedCompletionRef.current !== project.id) {
+      hasTrackedCompletionRef.current = project.id;
+      track({ name: "export_completed", properties: { format: settings.format } });
+      if (snapshot.result) {
+        void Sharing.isAvailableAsync()
+          .then((available) => available ? Sharing.shareAsync(snapshot.result!.uri) : undefined)
+          .catch(() => undefined);
+      }
+    }
+    if (snapshot.status === "failed" && snapshot.errorCode) {
+      track({ name: "export_failed", properties: { errorCode: snapshot.errorCode } });
+    }
+  }, [project.id, settings.format]);
+
   function selectFormat(format: ExportFormat): void {
     setSettings((current) => ({
       ...current,
@@ -153,21 +169,7 @@ export function useExportScreen(project: AudioProject): UseExportScreenResult {
         settings,
         displayName: project.displayName,
       },
-      (snapshot) => {
-        setJob(snapshot);
-        if (snapshot.status === "completed" && hasTrackedCompletionRef.current !== project.id) {
-          hasTrackedCompletionRef.current = project.id;
-          track({ name: "export_completed", properties: { format: settings.format } });
-          if (snapshot.result) {
-            Sharing.isAvailableAsync().then((available) => {
-              if (available) Sharing.shareAsync(snapshot.result!.uri);
-            });
-          }
-        }
-        if (snapshot.status === "failed" && snapshot.errorCode) {
-          track({ name: "export_failed", properties: { errorCode: snapshot.errorCode } });
-        }
-      },
+      handleSnapshot,
     );
   }
 
@@ -193,7 +195,7 @@ export function useExportScreen(project: AudioProject): UseExportScreenResult {
         settings,
         displayName: project.displayName,
       },
-      (snapshot) => setJob(snapshot),
+      handleSnapshot,
     );
   }
 
@@ -201,8 +203,8 @@ export function useExportScreen(project: AudioProject): UseExportScreenResult {
     if (!job?.result) return;
     Sharing.isAvailableAsync().then((available) => {
       if (!available) return;
-      Sharing.shareAsync(job.result!.uri);
-    });
+      return Sharing.shareAsync(job.result!.uri);
+    }).catch(() => undefined);
   }, [job]);
 
   function goEnhanceAnother(): void {

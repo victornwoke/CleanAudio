@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 import { AppButton } from "@/components/common/AppButton";
@@ -17,7 +17,7 @@ import { FormatOptionChip } from "@/components/export/FormatOptionChip";
 import { colors } from "@/constants/colors";
 import { iconNames } from "@/constants/images";
 import { spacing } from "@/constants/spacing";
-import { parseAudioProjectParams, type AudioProjectRouteParams } from "@/features/audio/parseAudioProjectParams";
+import { getExportProject } from "@/features/export/exportProjectHandoff";
 import { formatEstimatedSize } from "@/features/export/estimateExportSize";
 import { getExportErrorMessage } from "@/features/export/exportErrorMessages";
 import { useExportScreen } from "@/features/export/useExportScreen";
@@ -39,10 +39,10 @@ import type { LoudnessTargetId } from "@/types/fineTune";
  * as the placeholder this replaces.
  */
 export default function ExportScreen() {
-  const params = useLocalSearchParams<AudioProjectRouteParams>();
+  const params = useLocalSearchParams<{ projectId?: string | string[] }>();
   const projectId = useRequiredParam(params.projectId);
   const status = useRequireAuth(projectId ? `/export/${projectId}` : null);
-  const project = useMemo(() => parseAudioProjectParams(params), [params]);
+  const project = projectId ? getExportProject(projectId) : null;
 
   if (!projectId || !project) {
     return (
@@ -259,7 +259,7 @@ function ResolvedExportScreen({ project }: { project: AudioProject }) {
       ) : null}
 
       <AppButton
-        label="Save to Files"
+        label="Export and Share"
         variant="primary"
         icon={iconNames.exportSaveToFiles}
         onPress={startExport}

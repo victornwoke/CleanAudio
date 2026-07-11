@@ -61,7 +61,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test": "tsc --ignoreConfig services/audio/enhancementRoutingPolicy.ts types/audioDomainError.ts --outDir /tmp/cleanaudio-domain-tests --module node16 --moduleResolution node16 --target es2022 --skipLibCheck && tsc --ignoreConfig services/api/InMemorySecureBackend.ts services/api/CloudBackend.ts services/api/signedTransfer.ts types/cloud.ts lib/notifications/jobCompletionPayload.ts --outDir /tmp/cleanaudio-cloud-tests --module node16 --moduleResolution node16 --target es2022 --skipLibCheck && node --test services/audio/*.test.cjs services/api/*.test.cjs",
+    "test": "tsc --ignoreConfig services/audio/enhancementRoutingPolicy.ts types/audioDomainError.ts --outDir .test-build --module node16 --moduleResolution node16 --target es2022 --skipLibCheck && tsc --ignoreConfig services/api/InMemorySecureBackend.ts services/api/CloudBackend.ts services/api/signedTransfer.ts types/cloud.ts lib/notifications/jobCompletionPayload.ts --outDir /tmp/cleanaudio-cloud-tests --module node16 --moduleResolution node16 --target es2022 --skipLibCheck && node --test services/audio/*.test.cjs services/api/*.test.cjs",
     "verify": "npm run typecheck && npm run lint && npx expo-doctor && npm run test"
   },
   "private": true,

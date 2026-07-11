@@ -57,10 +57,11 @@ export class DevelopmentMockAdapter implements EnhancementService {
   }
 
   subscribe(jobId: string, listener: EnhancementJobListener): () => void {
+    let active = true;
     void this.getJob(jobId).then((job) => {
-      if (job) listener(job);
+      if (active && job) listener(job);
     });
-    return () => undefined;
+    return () => { active = false; };
   }
 
   async cancel(): Promise<void> {}

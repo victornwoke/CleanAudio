@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText } from "@/components/common/AppText";
 import { EmptyState } from "@/components/common/EmptyState";
+import { ErrorState } from "@/components/common/ErrorState";
 import { colors } from "@/constants/colors";
 import { iconNames } from "@/constants/images";
 import { componentRadii } from "@/constants/radii";
@@ -24,6 +25,9 @@ export default function HistoryScreen() {
 
   if (history.status === "loading") {
     return <View style={styles.centered}><ActivityIndicator color={colors.primary} /></View>;
+  }
+  if (history.status === "error") {
+    return <View style={styles.centered}><ErrorState title="Couldn’t load history" description="Your projects are still safe. Try loading them again." recoverable onRetry={() => void history.reload()} /></View>;
   }
 
   return (

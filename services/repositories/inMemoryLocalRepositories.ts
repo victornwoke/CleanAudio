@@ -10,6 +10,16 @@ function copyProject(project: LibraryProject): LibraryProject {
   return { ...project };
 }
 
+function copyHistory(history: ProjectHistory): ProjectHistory {
+  return {
+    ...history,
+    project: copyProject(history.project),
+    original: { ...history.original },
+    enhancements: history.enhancements.map((version) => ({ ...version, loudness: version.loudness ? { ...version.loudness } : undefined })),
+    exports: history.exports.map((version) => ({ ...version })),
+  };
+}
+
 function seedHistory(project: LibraryProject): ProjectHistory {
   const originalId = `${project.id}_original`;
   return {
@@ -48,8 +58,8 @@ export function createInMemoryLocalRepositories(seed: readonly LibraryProject[] 
       async remove(id) { projects.delete(id); histories.delete(id); },
     },
     versions: {
-      async getHistory(projectId) { return histories.get(projectId) ?? null; },
-      async listHistories() { return [...histories.values()]; },
+      async getHistory(projectId) { const history = histories.get(projectId); return history ? copyHistory(history) : null; },
+      async listHistories() { return [...histories.values()].map(copyHistory); },
       async putOriginal(projectId, version: OriginalVersion) {
         const project = projects.get(projectId);
         if (!project) return;
@@ -91,6 +101,18 @@ export function createInMemoryLocalRepositories(seed: readonly LibraryProject[] 
       },
       async deleteOwnedFiles(projectId) {
         for (const [id, item] of mediaFiles) if (item.projectId === projectId) mediaFiles.delete(id);
+      },
+      async cloneOwnedFiles(sourceProjectId, destinationProjectId) {
+        for (const item of [...mediaFiles.values()]) {
+          if (item.projectId !== sourceProjectId) continue;
+          const copy = {
+            ...item,
+            id: `${destinationProjectId}_${item.id}`,
+            projectId: destinationProjectId,
+            versionId: item.versionId.replace(sourceProjectId, destinationProjectId),
+          };
+          mediaFiles.set(copy.id, copy);
+        }
       },
     },
     syncQueue: {

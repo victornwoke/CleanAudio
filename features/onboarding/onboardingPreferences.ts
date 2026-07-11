@@ -14,7 +14,7 @@ export async function markDemoHeard(): Promise<void> {
 }
 
 export async function getDemoHeard(): Promise<boolean> {
-  await useOnboardingStore.persist.rehydrate();
+  if (!useOnboardingStore.persist.hasHydrated()) await useOnboardingStore.persist.rehydrate();
   return useOnboardingStore.getState().hasHeardDemo;
 }
 
@@ -30,7 +30,7 @@ export async function saveDefaultPresetOnly(presetId: PresetId): Promise<void> {
 }
 
 export async function getSelectedPersonaId(): Promise<PersonaId | null> {
-  await useOnboardingStore.persist.rehydrate();
+  if (!useOnboardingStore.persist.hasHydrated()) await useOnboardingStore.persist.rehydrate();
   const value = useOnboardingStore.getState().personaId;
   return PERSONA_OPTIONS.some((persona) => persona.id === value)
     ? (value as PersonaId)
@@ -38,7 +38,7 @@ export async function getSelectedPersonaId(): Promise<PersonaId | null> {
 }
 
 export async function getDefaultPresetId(): Promise<PresetId | null> {
-  await useOnboardingStore.persist.rehydrate();
+  if (!useOnboardingStore.persist.hasHydrated()) await useOnboardingStore.persist.rehydrate();
   const value = useOnboardingStore.getState().defaultPresetId;
   return PERSONA_OPTIONS.some((persona) => persona.defaultPresetId === value)
     ? (value as PresetId)

@@ -52,7 +52,9 @@ export function selectEnhancementRoute(
   return requireCloud(
     request,
     capabilities,
-    capabilities.localModelAvailable ? "local_duration_exceeded" : "local_unavailable",
+    capabilities.localModelAvailable && capabilities.deviceCapability === "supported"
+      ? "local_duration_exceeded"
+      : "local_unavailable",
   );
 }
 

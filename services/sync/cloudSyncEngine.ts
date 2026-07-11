@@ -34,6 +34,10 @@ export async function flushSyncQueue(
       await queue.remove(item.id); synced += 1;
     } catch (error) {
       if (error instanceof CloudApiError && error.code === "conflict") { conflicts.push(item.projectId); await queue.remove(item.id); continue; }
+      if (error instanceof CloudApiError && !error.retryable) {
+        await queue.save({ ...item, status: "failed" as const });
+        continue;
+      }
       const attempts = item.attempts + 1;
       await queue.save({ ...item, attempts, nextAttemptAt: now + retryDelayMs(attempts) });
     }

@@ -59,6 +59,7 @@ export interface MediaFileRepository {
   listForProject(projectId: string): Promise<MediaFileRecord[]>;
   cleanupTemporary(projectId: string): Promise<void>;
   deleteOwnedFiles(projectId: string): Promise<void>;
+  cloneOwnedFiles(sourceProjectId: string, destinationProjectId: string): Promise<void>;
 }
 
 export interface SyncQueueRepository {

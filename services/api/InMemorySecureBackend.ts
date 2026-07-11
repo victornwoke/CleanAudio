@@ -15,7 +15,7 @@ function requireIdempotency(request: AuthenticatedRequest): string {
 export class InMemorySecureBackend implements CloudBackend {
   private readonly projects = new Map<string, CloudProject>();
   private readonly jobs = new Map<string, CloudEnhancementJob>();
-  private readonly idempotentResults = new Map<string, CloudEnhancementJob | CloudExport>();
+  private readonly idempotentResults = new Map<string, { payload: string; result: CloudEnhancementJob | CloudExport | CloudProject | null }>();
   private readonly pendingJobs = new Map<string, Promise<CloudEnhancementJob>>();
   private sequence = 0;
 
@@ -40,12 +40,18 @@ export class InMemorySecureBackend implements CloudBackend {
   private async requireCloud(userId: string): Promise<void> {
     if (!(await this.entitlements.hasCloudEntitlement(userId))) throw new CloudApiError("entitlement_required", "Cloud sync requires an active entitlement.");
   }
+  private replay<T>(key: string, payload: string): T | undefined {
+    const entry = this.idempotentResults.get(key);
+    if (!entry) return undefined;
+    if (entry.payload !== payload) throw new CloudApiError("validation_failed", "An idempotency key cannot be reused with a different request.");
+    return (entry.result === null ? null : { ...entry.result }) as T;
+  }
 
   async createUpload(request: AuthenticatedRequest, input: UploadDescriptor): Promise<SignedTransfer> {
     const { userId } = await this.ownedProject(request, input.projectId);
     await this.requireCloud(userId);
     requireIdempotency(request);
-    if (input.sizeBytes <= 0 || input.sizeBytes > MAX_MEDIA_BYTES || input.durationSeconds <= 0 || input.durationSeconds > MAX_DURATION_SECONDS || !SHA256.test(input.checksumSha256)) {
+    if (!Number.isFinite(input.sizeBytes) || !Number.isFinite(input.durationSeconds) || input.sizeBytes <= 0 || input.sizeBytes > MAX_MEDIA_BYTES || input.durationSeconds <= 0 || input.durationSeconds > MAX_DURATION_SECONDS || !SHA256.test(input.checksumSha256)) {
       throw new CloudApiError("validation_failed", "Media metadata is invalid.");
     }
     return this.signedMedia.createUpload(userId, input, 300);
@@ -55,15 +61,16 @@ export class InMemorySecureBackend implements CloudBackend {
     const { userId } = await this.ownedProject(request, input.projectId);
     await this.requireCloud(userId);
     const key = `${userId}:job:${requireIdempotency(request)}`;
-    const existing = this.idempotentResults.get(key);
-    if (existing && "presetId" in existing) return { ...existing };
+    const payload = JSON.stringify(input);
+    const existing = this.replay<CloudEnhancementJob>(key, payload);
+    if (existing) return existing;
     const pending = this.pendingJobs.get(key);
     if (pending) return { ...(await pending) };
     const creation = (async () => {
       if (!(await this.rateLimiter.consume(userId))) throw new CloudApiError("rate_limited", "Too many enhancement jobs.", true);
       const now = new Date().toISOString();
       const job: CloudEnhancementJob = { id: this.nextId("job"), projectId: input.projectId, ownerId: userId, status: "queued", presetId: input.presetId, quality: input.quality, createdAt: now, updatedAt: now };
-      this.jobs.set(job.id, job); this.idempotentResults.set(key, job); return job;
+      this.jobs.set(job.id, job); this.idempotentResults.set(key, { payload, result: job }); return job;
     })();
     this.pendingJobs.set(key, creation);
     try { return { ...(await creation) }; } finally { this.pendingJobs.delete(key); }
@@ -81,27 +88,35 @@ export class InMemorySecureBackend implements CloudBackend {
   }
   async listProjects(request: AuthenticatedRequest): Promise<CloudProject[]> {
     const userId = await this.user(request); await this.requireCloud(userId);
-    return [...this.projects.values()].filter((item) => item.ownerId === userId).map((item) => ({ ...item }));
+    return [...this.projects.values()].filter((item) => item.ownerId === userId && !item.deletedAt).map((item) => ({ ...item }));
   }
   async getProject(request: AuthenticatedRequest, id: string): Promise<CloudProject> { return { ...(await this.ownedProject(request, id)).project }; }
   async patchProject(request: AuthenticatedRequest, id: string, input: { displayName: string; baseRevision: number }): Promise<CloudProject> {
-    requireIdempotency(request); const { project } = await this.ownedProject(request, id);
+    const userId = await this.user(request); const key = `${userId}:patch:${requireIdempotency(request)}`; await this.requireCloud(userId);
+    const payload = JSON.stringify({ id, ...input }); const existing = this.replay<CloudProject>(key, payload); if (existing) return existing;
+    const { project } = await this.ownedProject(request, id);
     if (project.revision !== input.baseRevision) throw new CloudApiError("conflict", "The project changed on another device.");
     const displayName = input.displayName.trim(); if (!displayName || displayName.length > 160) throw new CloudApiError("validation_failed", "Project name is invalid.");
-    const next = { ...project, displayName, revision: project.revision + 1, updatedAt: new Date().toISOString() }; this.projects.set(id, next); return { ...next };
+    const next = { ...project, displayName, revision: project.revision + 1, updatedAt: new Date().toISOString() }; this.projects.set(id, next); this.idempotentResults.set(key, { payload, result: next }); return { ...next };
   }
   async deleteProject(request: AuthenticatedRequest, id: string, baseRevision: number): Promise<CloudProject> {
-    requireIdempotency(request); const { project } = await this.ownedProject(request, id);
+    const userId = await this.user(request); const key = `${userId}:delete-project:${requireIdempotency(request)}`; await this.requireCloud(userId);
+    const payload = JSON.stringify({ id, baseRevision }); const existing = this.replay<CloudProject>(key, payload); if (existing) return existing;
+    const { project } = await this.ownedProject(request, id);
     if (project.revision !== baseRevision) throw new CloudApiError("conflict", "The project changed on another device.");
-    const now = new Date().toISOString(); const tombstone = { ...project, revision: project.revision + 1, updatedAt: now, deletedAt: now }; this.projects.set(id, tombstone); return { ...tombstone };
+    const now = new Date().toISOString(); const tombstone = { ...project, revision: project.revision + 1, updatedAt: now, deletedAt: now }; this.projects.set(id, tombstone); this.idempotentResults.set(key, { payload, result: tombstone }); return { ...tombstone };
   }
   async createExport(request: AuthenticatedRequest, projectId: string, _input: CreateExportInput): Promise<CloudExport> {
     const { userId } = await this.ownedProject(request, projectId); await this.requireCloud(userId); const key = `${userId}:export:${requireIdempotency(request)}`;
-    const existing = this.idempotentResults.get(key); if (existing && !("presetId" in existing)) return { ...existing };
-    const value: CloudExport = { id: this.nextId("export"), projectId, status: "queued", createdAt: new Date().toISOString() }; this.idempotentResults.set(key, value); return { ...value };
+    const payload = JSON.stringify({ projectId, input: _input }); const existing = this.replay<CloudExport>(key, payload); if (existing) return existing;
+    const value: CloudExport = { id: this.nextId("export"), projectId, status: "queued", createdAt: new Date().toISOString() }; this.idempotentResults.set(key, { payload, result: value }); return { ...value };
   }
   async deleteAccount(request: AuthenticatedRequest): Promise<void> {
-    requireIdempotency(request); const userId = await this.user(request); const now = new Date().toISOString();
-    for (const [id, project] of this.projects) if (project.ownerId === userId) this.projects.set(id, { ...project, deletedAt: now, updatedAt: now, revision: project.revision + 1 });
+    const userId = await this.user(request); const key = `${userId}:delete-account:${requireIdempotency(request)}`; const payload = "delete-account";
+    if (this.replay<null>(key, payload) === null && this.idempotentResults.has(key)) return;
+    for (const [id, project] of this.projects) if (project.ownerId === userId) this.projects.delete(id);
+    for (const [id, job] of this.jobs) if (job.ownerId === userId) this.jobs.delete(id);
+    for (const entryKey of [...this.idempotentResults.keys()]) if (entryKey.startsWith(`${userId}:`)) this.idempotentResults.delete(entryKey);
+    this.idempotentResults.set(key, { payload, result: null });
   }
 }

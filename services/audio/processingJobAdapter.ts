@@ -171,7 +171,9 @@ export const unavailableProcessingAdapter: ProcessingJobAdapter = {
     return () => undefined;
   },
   cancel() {},
-  retry() {},
+  retry(jobId) {
+    throw new Error(`Processing job ${jobId} cannot be retried because the audio SDK is unavailable.`);
+  },
 };
 
 export const audioProcessingJobAdapter: ProcessingJobAdapter = __DEV__

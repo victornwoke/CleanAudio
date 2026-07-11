@@ -14,7 +14,7 @@ import { usePreferencesStore } from "@/store/usePreferencesStore";
  * prime the user for the system permission dialog.
  */
 export async function getJobNotificationOptIn(): Promise<boolean> {
-  await usePreferencesStore.persist.rehydrate();
+  if (!usePreferencesStore.persist.hasHydrated()) await usePreferencesStore.persist.rehydrate();
   return usePreferencesStore.getState().notifyWhenJobCompletes;
 }
 

@@ -80,4 +80,5 @@ export interface SyncMutation {
   displayName?: string;
   attempts: number;
   nextAttemptAt: number;
+  status?: "pending" | "failed";
 }

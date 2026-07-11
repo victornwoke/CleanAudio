@@ -16,6 +16,8 @@ import { QuickActionsRow } from "@/components/library/QuickActionsRow";
 import { RenameProjectSheet } from "@/components/library/RenameProjectSheet";
 import { AppText } from "@/components/common/AppText";
 import { EmptyState } from "@/components/common/EmptyState";
+import { ErrorState } from "@/components/common/ErrorState";
+import { useProjectStore } from "@/store/useProjectStore";
 import { InlineBanner } from "@/components/common/InlineBanner";
 import { colors } from "@/constants/colors";
 import { iconNames } from "@/constants/images";
@@ -83,6 +85,10 @@ export default function LibraryScreen() {
 
         {library.usage ? <PlanUsageIndicator usage={library.usage} /> : null}
 
+        {library.mutationError ? (
+          <InlineBanner icon={iconNames.warning} title="Change not saved" description={library.mutationError} variant="warning" />
+        ) : null}
+
         {library.isOffline ? (
           <InlineBanner
             icon={iconNames.offline}
@@ -137,6 +143,7 @@ export default function LibraryScreen() {
       library.filter,
       library.isEmpty,
       library.isOffline,
+      library.mutationError,
       library.searchQuery,
       library.setFilter,
       library.setSearchQuery,
@@ -154,6 +161,9 @@ export default function LibraryScreen() {
         </AppText>
       </View>
     );
+  }
+  if (library.status === "error") {
+    return <View style={[styles.centered, { paddingTop: insets.top }]}><ErrorState title="Couldn’t load your library" description="Your recordings are still safe. Try again." recoverable onRetry={() => void useProjectStore.getState().load()} /></View>;
   }
 
   if (library.isEmpty) {
