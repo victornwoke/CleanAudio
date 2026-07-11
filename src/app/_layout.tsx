@@ -41,7 +41,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="import" options={{ headerShown: false }} />
         <Stack.Screen name="record" options={{ headerShown: false }} />
-        <Stack.Screen name="presets" options={{ title: "Choose a Preset" }} />
+        <Stack.Screen name="presets" options={{ headerShown: false }} />
         <Stack.Screen name="processing/[jobId]" options={{ headerShown: false }} />
         <Stack.Screen name="review/[projectId]" options={{ title: "Review" }} />
         <Stack.Screen name="fine-tune/[projectId]" options={{ title: "Fine-Tune" }} />

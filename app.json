@@ -45,7 +45,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "CleanAudio needs access to your photo library to import video or audio you want to enhance."
+          "photosPermission": "CleanAudio needs access to your photo library to import videos you want to enhance."
         }
       ],
       "expo-asset",

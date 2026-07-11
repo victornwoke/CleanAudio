@@ -43,8 +43,8 @@ export default function ImportScreen() {
 
   const importScreen = useImportScreen({ onImported: handleImported });
 
-  const handlePhotosPermissionResult = useCallback(() => {
-    if (importScreen.photosPermissionStatus === "denied") {
+  const handlePhotosPermissionResult = useCallback((outcome: "denied" | "blocked") => {
+    if (outcome === "denied") {
       Alert.alert(
         "Photo library access needed",
         "Allow access to your photo library to import video from Photos.",
@@ -53,7 +53,7 @@ export default function ImportScreen() {
           { text: "Try again", onPress: importScreen.pickFromLibrary },
         ],
       );
-    } else if (importScreen.photosPermissionStatus === "blocked") {
+    } else {
       Alert.alert(
         "Photo library access needed",
         "Photo library access was denied. You can enable it in Settings.",
@@ -63,11 +63,13 @@ export default function ImportScreen() {
         ],
       );
     }
-  }, [importScreen.photosPermissionStatus, importScreen.pickFromLibrary, importScreen.openAppSettings]);
+  }, [importScreen.pickFromLibrary, importScreen.openAppSettings]);
 
   const handleChooseFromLibrary = useCallback(async () => {
-    await importScreen.pickFromLibrary();
-    handlePhotosPermissionResult();
+    const outcome = await importScreen.pickFromLibrary();
+    if (outcome === "denied" || outcome === "blocked") {
+      handlePhotosPermissionResult(outcome);
+    }
   }, [importScreen, handlePhotosPermissionResult]);
 
   useEffect(() => {

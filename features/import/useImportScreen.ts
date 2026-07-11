@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Linking } from "react-native";
 
 import { finalizeImportedProject } from "@/services/media/mediaImportService";
-import { isSupportedFile } from "@/services/media/mediaFormats";
+import { getFileExtension, isSupportedFile } from "@/services/media/mediaFormats";
 import { MediaValidationError, type AudioProject } from "@/types/audio";
 
 import { addRecentImport, getRecentImports } from "./recentImports";
@@ -18,7 +18,7 @@ export interface UseImportScreenResult {
   status: ImportStatus;
   errorMessage: string | null;
   photosPermissionStatus: PhotosPermissionStatus;
-  pickFromLibrary: () => Promise<void>;
+  pickFromLibrary: () => Promise<PhotosPermissionStatus>;
   pickFromFiles: () => Promise<void>;
   cancelImport: () => void;
   dismissError: () => void;
@@ -91,7 +91,11 @@ export function useImportScreen({ onImported }: UseImportScreenParams): UseImpor
           declaredSizeBytes,
           isCancelled: () => cancelledRef.current,
         });
-        await addRecentImport(project);
+        try {
+          await addRecentImport(project);
+        } catch {
+          // Recent history is a convenience; a storage failure must not discard a valid import.
+        }
         setRecentImports((current) => [project, ...current.filter((p) => p.id !== project.id)].slice(0, 5));
         setStatus("idle");
         onImported(project);
@@ -105,8 +109,9 @@ export function useImportScreen({ onImported }: UseImportScreenParams): UseImpor
   const pickFromLibrary = useCallback(async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      setPhotosPermissionStatus(permission.canAskAgain ? "denied" : "blocked");
-      return;
+      const outcome = permission.canAskAgain ? "denied" : "blocked";
+      setPhotosPermissionStatus(outcome);
+      return outcome;
     }
     setPhotosPermissionStatus("granted");
 
@@ -114,12 +119,23 @@ export function useImportScreen({ onImported }: UseImportScreenParams): UseImpor
       mediaTypes: ["videos"],
       allowsMultipleSelection: false,
     });
-    if (result.canceled || result.assets.length === 0) return;
+    if (result.canceled || result.assets.length === 0) return "granted";
 
     const asset = result.assets[0];
-    const fileName = asset.fileName ?? asset.uri.split("/").pop() ?? "video.mov";
+    const uriWithoutQuery = asset.uri.split(/[?#]/, 1)[0];
+    const fileName = asset.fileName ?? uriWithoutQuery.split("/").filter(Boolean).at(-1);
+    if (!fileName || !getFileExtension(fileName)) {
+      handleValidationError(
+        new MediaValidationError(
+          "unsupported_format",
+          "That video doesn't include a file extension, so CleanAudio can't verify its format.",
+        ),
+      );
+      return "granted";
+    }
     await finishImport(asset.uri, fileName, asset.fileSize);
-  }, [finishImport]);
+    return "granted";
+  }, [finishImport, handleValidationError]);
 
   const pickFromFiles = useCallback(async () => {
     const result = await DocumentPicker.getDocumentAsync({

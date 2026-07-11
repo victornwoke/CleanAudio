@@ -33,6 +33,7 @@ export default function RecordScreen() {
   const record = useRecordScreen();
   const [presetSheetVisible, setPresetSheetVisible] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<ShortcutPresetId>("auto");
+  const isFinalizing = record.phase === "finalizing";
 
   const handleFinish = useCallback(async () => {
     const project = await record.stop();
@@ -93,6 +94,7 @@ export default function RecordScreen() {
         onClose={handleClose}
         onPresetShortcut={() => setPresetSheetVisible(true)}
         presetLabel={presetShortcutLabel(selectedPreset)}
+        disabled={isFinalizing}
       />
 
       <View style={styles.body}>
@@ -112,6 +114,15 @@ export default function RecordScreen() {
             icon={iconNames.warning}
             title="Input is clipping"
             description="Move away from the mic or lower your volume."
+            variant="warning"
+          />
+        ) : null}
+
+        {record.errorMessage ? (
+          <InlineBanner
+            icon={iconNames.warning}
+            title="Recording failed"
+            description={`${record.errorMessage} You can retry without leaving this screen.`}
             variant="warning"
           />
         ) : null}
@@ -138,7 +149,7 @@ export default function RecordScreen() {
       </View>
 
       <PresetShortcutSheet
-        visible={presetSheetVisible}
+        visible={presetSheetVisible && !isFinalizing}
         selected={selectedPreset}
         onSelect={setSelectedPreset}
         onClose={() => setPresetSheetVisible(false)}

@@ -101,6 +101,10 @@ export const iconNames = {
   recordDot: "ellipse",
   recordStop: "square",
   inputSource: "mic-outline",
+
+  // Preset selection (`prompts/08-preset-selection.md`, `cleanaudio-presets.png`)
+  presetFieldInterview: "navigate-outline",
+  presetRecommended: "star",
 } as const satisfies Record<string, IconName>;
 
 export type IconToken = keyof typeof iconNames;

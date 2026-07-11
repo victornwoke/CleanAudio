@@ -159,10 +159,19 @@ export function useRecordScreen(): UseRecordScreenResult {
     setPhase("recording");
   }, [recorder]);
 
-  const resumeAfterInterruption = useCallback(() => {
-    recorder.record();
-    setPhase("recording");
-  }, [recorder]);
+  const resumeAfterInterruption = useCallback(async () => {
+    try {
+      if (recorderState.mediaServicesDidReset) {
+        await recorder.prepareToRecordAsync();
+      }
+      recorder.record();
+      setErrorMessage(null);
+      setPhase("recording");
+    } catch {
+      setErrorMessage("We couldn't resume recording. Please try again.");
+      setPhase("interrupted");
+    }
+  }, [recorder, recorderState.mediaServicesDidReset]);
 
   const stop = useCallback(async (): Promise<AudioProject | null> => {
     setPhase("finalizing");

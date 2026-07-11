@@ -1,6 +1,6 @@
 import { Directory, File, Paths } from "expo-file-system";
 
-import { getFileExtension } from "./mediaFormats";
+import { getFileExtension, isSupportedFile, MAX_FILE_SIZE_BYTES } from "./mediaFormats";
 import { inspectMedia } from "./mediaInspectionService";
 import { MediaValidationError, type AudioProject, type AudioProjectSource } from "@/types/audio";
 
@@ -87,26 +87,48 @@ export async function finalizeImportedProject({
   declaredSizeBytes,
   isCancelled,
 }: FinalizeImportParams): Promise<AudioProject> {
-  const id = generateProjectId();
-  const copied = await copyIntoSandbox(sourceUri, fileName, id, isCancelled);
-  const inspection = await inspectMedia({
-    uri: copied.uri,
-    fileName,
-    declaredSizeBytes,
-  });
+  if (isCancelled()) {
+    throw new MediaValidationError("cancelled", "Import cancelled.");
+  }
+  if (!isSupportedFile(fileName)) {
+    throw new MediaValidationError(
+      "unsupported_format",
+      "That file type isn't supported yet. Try MP4, MOV, MP3, M4A, WAV, or FLAC.",
+    );
+  }
+  if (declaredSizeBytes !== undefined && declaredSizeBytes > MAX_FILE_SIZE_BYTES) {
+    throw new MediaValidationError("file_too_large", "That file is larger than the 2 GB limit.");
+  }
 
-  return {
-    id,
-    displayName: fileName.replace(/\.[^./]+$/, "") || fileName,
-    mediaType: inspection.mediaType,
-    source,
-    sourceUri: copied.uri,
-    container: inspection.container,
-    durationSeconds: inspection.durationSeconds,
-    sizeBytes: inspection.sizeBytes,
-    createdAt: new Date().toISOString(),
-    needsAudioExtraction: inspection.mediaType === "video",
-  };
+  const id = generateProjectId();
+  let copied: File | null = null;
+  try {
+    copied = await copyIntoSandbox(sourceUri, fileName, id, isCancelled);
+    const inspection = await inspectMedia({
+      uri: copied.uri,
+      fileName,
+      declaredSizeBytes,
+    });
+    if (isCancelled()) {
+      throw new MediaValidationError("cancelled", "Import cancelled.");
+    }
+
+    return {
+      id,
+      displayName: fileName.replace(/\.[^./]+$/, "") || fileName,
+      mediaType: inspection.mediaType,
+      source,
+      sourceUri: copied.uri,
+      container: inspection.container,
+      durationSeconds: inspection.durationSeconds,
+      sizeBytes: inspection.sizeBytes,
+      createdAt: new Date().toISOString(),
+      needsAudioExtraction: inspection.mediaType === "video",
+    };
+  } catch (error) {
+    if (copied?.exists) copied.delete();
+    throw error;
+  }
 }
 
 export { generateProjectId };

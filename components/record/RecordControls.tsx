@@ -25,15 +25,23 @@ export function RecordControls({ phase, onStart, onPause, onResume, onStop }: Re
   const isIdle = phase === "idle";
   const isRecording = phase === "recording";
   const isPaused = phase === "paused" || phase === "interrupted";
+  const isFinalizing = phase === "finalizing";
 
   const primaryIcon = isRecording ? iconNames.pause : isPaused ? iconNames.play : iconNames.recordDot;
-  const primaryLabel = isRecording ? "Pause recording" : isPaused ? "Resume recording" : "Start recording";
+  const primaryLabel = isFinalizing
+    ? "Saving recording"
+    : isRecording
+      ? "Pause recording"
+      : isPaused
+        ? "Resume recording"
+        : "Start recording";
   const primaryColor = isIdle ? colors.error : colors.primary;
 
   function handlePrimaryPress() {
+    if (isFinalizing) return;
     if (isIdle) onStart();
     else if (isRecording) onPause();
-    else onResume();
+    else if (isPaused) onResume();
   }
 
   return (
@@ -41,20 +49,22 @@ export function RecordControls({ phase, onStart, onPause, onResume, onStop }: Re
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={primaryLabel}
+        accessibilityState={{ disabled: isFinalizing, busy: isFinalizing }}
+        disabled={isFinalizing}
         onPress={handlePrimaryPress}
         style={({ pressed }) => [
           styles.primaryButton,
           shadows.primaryButton,
-          { backgroundColor: primaryColor, opacity: pressed ? 0.85 : 1 },
+          { backgroundColor: primaryColor, opacity: isFinalizing ? 0.5 : pressed ? 0.85 : 1 },
         ]}
       >
         <Ionicons name={primaryIcon} size={32} color={colors.textOnPrimary} />
       </Pressable>
       <AppText variant="label" color="secondary">
-        {isIdle ? "Tap to record" : isRecording ? "Recording…" : "Paused"}
+        {isFinalizing ? "Saving…" : isIdle ? "Tap to record" : isRecording ? "Recording…" : "Paused"}
       </AppText>
 
-      {!isIdle ? (
+      {!isIdle && !isFinalizing ? (
         <View style={styles.stopButton}>
           <AppButton
             label="Stop"
