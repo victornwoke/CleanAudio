@@ -77,6 +77,19 @@ export const iconNames = {
   warning: "warning-outline",
   offline: "cloud-offline-outline",
   permission: "lock-closed-outline",
+
+  // Library (`prompts/06-home-library.md`, `04-home-library.png` / `10-history.png`)
+  recordAction: "mic-circle-outline",
+  mediaTypeAudio: "musical-notes-outline",
+  mediaTypeVideo: "videocam-outline",
+  cloudPlaceholder: "cloud-download-outline",
+  syncing: "sync-outline",
+  rename: "create-outline",
+  duplicate: "copy-outline",
+  delete: "trash-outline",
+  retry: "refresh-outline",
+  cancelJob: "close-circle-outline",
+  openFile: "open-outline",
 } as const satisfies Record<string, IconName>;
 
 export type IconToken = keyof typeof iconNames;
