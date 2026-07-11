@@ -20,7 +20,8 @@ export type AppButtonVariant =
   | "primary"
   | "secondary"
   | "ghost"
-  | "destructive";
+  | "destructive"
+  | "outlineOnDark";
 export type AppButtonSize = "md" | "lg";
 
 export interface AppButtonProps extends Omit<PressableProps, "children" | "style"> {
@@ -35,7 +36,12 @@ export interface AppButtonProps extends Omit<PressableProps, "children" | "style
 
 const variantStyles: Record<
   AppButtonVariant,
-  { background: string; pressedBackground: string; text: "onPrimary" | "brand" | "error" | "secondary"; border?: string }
+  {
+    background: string;
+    pressedBackground: string;
+    text: "onPrimary" | "brand" | "error" | "secondary" | "onDark";
+    border?: string;
+  }
 > = {
   primary: {
     background: colors.primary,
@@ -58,7 +64,26 @@ const variantStyles: Record<
     pressedBackground: colors.error,
     text: "error",
   },
+  outlineOnDark: {
+    background: "transparent",
+    pressedBackground: "rgba(255,255,255,0.12)",
+    text: "onDark",
+    border: "rgba(255,255,255,0.24)",
+  },
 };
+
+function resolveIconColor(text: (typeof variantStyles)[AppButtonVariant]["text"]): string {
+  switch (text) {
+    case "onPrimary":
+      return colors.textOnPrimary;
+    case "error":
+      return colors.error;
+    case "onDark":
+      return colors.textOnDark;
+    default:
+      return colors.primary;
+  }
+}
 
 /**
  * Primary CleanAudio button. Covers disabled, loading, pressed, and focused
@@ -129,30 +154,10 @@ export function AppButton({
     >
       <View style={styles.content}>
         {loading ? (
-          <ActivityIndicator
-            color={
-              config.text === "onPrimary"
-                ? colors.textOnPrimary
-                : config.text === "error"
-                  ? colors.error
-                  : colors.primary
-            }
-          />
+          <ActivityIndicator color={resolveIconColor(config.text)} />
         ) : (
           <>
-            {icon ? (
-              <Ionicons
-                name={icon}
-                size={20}
-                color={
-                  config.text === "onPrimary"
-                    ? colors.textOnPrimary
-                    : config.text === "error"
-                      ? colors.error
-                      : colors.primary
-                }
-              />
-            ) : null}
+            {icon ? <Ionicons name={icon} size={20} color={resolveIconColor(config.text)} /> : null}
             <AppText variant="bodyStrong" color={config.text}>
               {label}
             </AppText>

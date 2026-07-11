@@ -1,4 +1,6 @@
 import type { PersonaId } from "@/types/onboarding";
+import type { EnhancementAdapter } from "@/types/library";
+import type { ProcessingErrorCode, ProcessingStage } from "@/types/processing";
 
 /**
  * Typed onboarding analytics events (`prompts/04-demo-onboarding-persona.md`).
@@ -21,7 +23,17 @@ export type AnalyticsEvent =
   | {
       name: "onboarding_completed";
       properties: { personaId: PersonaId | null; demoHeard: boolean };
-    };
+    }
+  | { name: "processing_completed"; properties: { adapter: EnhancementAdapter; elapsedSeconds: number } }
+  | {
+      name: "processing_cancelled";
+      properties: { stage: ProcessingStage | null; elapsedSeconds: number };
+    }
+  | {
+      name: "processing_failed";
+      properties: { errorCode: ProcessingErrorCode; elapsedSeconds: number };
+    }
+  | { name: "processing_notify_opt_in_changed"; properties: { optedIn: boolean } };
 
 export function track(event: AnalyticsEvent): void {
   if (__DEV__) {

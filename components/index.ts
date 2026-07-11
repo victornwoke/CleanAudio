@@ -38,3 +38,5 @@ export * from "./record/RecordControls";
 export * from "./record/PresetShortcutSheet";
 export * from "./presets/PresetCard";
 export * from "./presets/PresetOptionsGrid";
+export * from "./processing/ProcessingRing";
+export * from "./processing/StageList";

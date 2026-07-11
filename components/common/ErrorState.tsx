@@ -17,6 +17,11 @@ export interface ErrorStateProps {
   onRetry?: () => void;
   secondaryLabel?: string;
   onSecondaryAction?: () => void;
+  /** Renders title/description in light-on-dark colors for use on the dark
+   * processing surface (`AppScreen background="processing"`) — otherwise
+   * the default text colors (tuned for the light screen background) are
+   * nearly invisible against navy. */
+  onDark?: boolean;
 }
 
 /**
@@ -32,17 +37,28 @@ export function ErrorState({
   onRetry,
   secondaryLabel,
   onSecondaryAction,
+  onDark = false,
 }: ErrorStateProps) {
   return (
     <View style={styles.container}>
       <View style={styles.iconCircle}>
         <Ionicons name={icon} size={28} color={colors.error} />
       </View>
-      <AppText variant="heading" align="center" style={styles.title}>
+      <AppText
+        variant="heading"
+        color={onDark ? "onDark" : "primary"}
+        align="center"
+        style={styles.title}
+      >
         {title}
       </AppText>
       {description ? (
-        <AppText variant="body" color="secondary" align="center">
+        <AppText
+          variant="body"
+          color={onDark ? "onDark" : "secondary"}
+          align="center"
+          style={onDark && styles.descriptionOnDark}
+        >
           {description}
         </AppText>
       ) : null}
@@ -53,7 +69,7 @@ export function ErrorState({
         {secondaryLabel && onSecondaryAction ? (
           <AppButton
             label={secondaryLabel}
-            variant="ghost"
+            variant={onDark ? "outlineOnDark" : "ghost"}
             onPress={onSecondaryAction}
             fullWidth={false}
           />
@@ -81,6 +97,9 @@ const styles = StyleSheet.create({
   },
   title: {
     marginBottom: spacing.xxs,
+  },
+  descriptionOnDark: {
+    color: colors.processingTextSecondary,
   },
   actions: {
     flexDirection: "row",
