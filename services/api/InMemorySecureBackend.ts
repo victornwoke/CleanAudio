@@ -17,7 +17,6 @@ export class InMemorySecureBackend implements CloudBackend {
   private readonly projects = new Map<string, CloudProject>();
   private readonly jobs = new Map<string, CloudEnhancementJob>();
   private readonly idempotentResults = new Map<string, { payload: string; result: IdempotentResult }>();
-  private readonly pendingJobs = new Map<string, Promise<CloudEnhancementJob>>();
   private readonly pendingOperations = new Map<string, { payload: string; promise: Promise<IdempotentResult> }>();
   private sequence = 0;
 
@@ -41,12 +40,6 @@ export class InMemorySecureBackend implements CloudBackend {
   }
   private async requireCloud(userId: string): Promise<void> {
     if (!(await this.entitlements.hasCloudEntitlement(userId))) throw new CloudApiError("entitlement_required", "Cloud sync requires an active entitlement.");
-  }
-  private replay<T>(key: string, payload: string): T | undefined {
-    const entry = this.idempotentResults.get(key);
-    if (!entry) return undefined;
-    if (entry.payload !== payload) throw new CloudApiError("validation_failed", "An idempotency key cannot be reused with a different request.");
-    return (entry.result === null ? null : { ...entry.result }) as T;
   }
   private async executeIdempotent<T extends IdempotentResult>(
     key: string,
@@ -90,18 +83,14 @@ export class InMemorySecureBackend implements CloudBackend {
     await this.requireCloud(userId);
     const key = `${userId}:job:${requireIdempotency(request)}`;
     const payload = JSON.stringify(input);
-    const existing = this.replay<CloudEnhancementJob>(key, payload);
-    if (existing) return existing;
-    const pending = this.pendingJobs.get(key);
-    if (pending) return { ...(await pending) };
-    const creation = (async () => {
+    return this.executeIdempotent(key, payload, async () => {
       if (!(await this.rateLimiter.consume(userId))) throw new CloudApiError("rate_limited", "Too many enhancement jobs.", true);
+      await this.ownedProject(request, input.projectId);
       const now = new Date().toISOString();
       const job: CloudEnhancementJob = { id: this.nextId("job"), projectId: input.projectId, ownerId: userId, status: "queued", presetId: input.presetId, quality: input.quality, createdAt: now, updatedAt: now };
-      this.jobs.set(job.id, job); this.idempotentResults.set(key, { payload, result: job }); return job;
-    })();
-    this.pendingJobs.set(key, creation);
-    try { return { ...(await creation) }; } finally { this.pendingJobs.delete(key); }
+      this.jobs.set(job.id, job);
+      return job;
+    });
   }
 
   async getEnhancementJob(request: AuthenticatedRequest, id: string): Promise<CloudEnhancementJob> {
