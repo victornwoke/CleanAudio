@@ -39,12 +39,12 @@ export default function RootLayout() {
         <Stack.Screen name="(auth)/sign-up" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)/verify" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="import" options={{ title: "Import" }} />
-        <Stack.Screen name="record" options={{ title: "Record" }} />
-        <Stack.Screen name="presets" options={{ title: "Choose a Preset" }} />
+        <Stack.Screen name="import" options={{ headerShown: false }} />
+        <Stack.Screen name="record" options={{ headerShown: false }} />
+        <Stack.Screen name="presets" options={{ headerShown: false }} />
         <Stack.Screen name="processing/[jobId]" options={{ headerShown: false }} />
-        <Stack.Screen name="review/[projectId]" options={{ title: "Review" }} />
-        <Stack.Screen name="fine-tune/[projectId]" options={{ title: "Fine-Tune" }} />
+        <Stack.Screen name="review/[projectId]" options={{ headerShown: false }} />
+        <Stack.Screen name="fine-tune/[projectId]" options={{ headerShown: false }} />
         <Stack.Screen name="export/[projectId]" options={{ title: "Export" }} />
         <Stack.Screen name="file/[projectId]" options={{ title: "File Details" }} />
         <Stack.Screen

@@ -1,4 +1,8 @@
+import type { LoudnessTargetId } from "@/types/fineTune";
 import type { PersonaId } from "@/types/onboarding";
+import type { EnhancementAdapter } from "@/types/library";
+import type { ProcessingErrorCode, ProcessingStage } from "@/types/processing";
+import type { ReviewFeedbackReason } from "@/types/review";
 
 /**
  * Typed onboarding analytics events (`prompts/04-demo-onboarding-persona.md`).
@@ -21,7 +25,26 @@ export type AnalyticsEvent =
   | {
       name: "onboarding_completed";
       properties: { personaId: PersonaId | null; demoHeard: boolean };
-    };
+    }
+  | { name: "processing_completed"; properties: { adapter: EnhancementAdapter; elapsedSeconds: number } }
+  | {
+      name: "processing_cancelled";
+      properties: { stage: ProcessingStage | null; elapsedSeconds: number };
+    }
+  | {
+      name: "processing_failed";
+      properties: { errorCode: ProcessingErrorCode; elapsedSeconds: number };
+    }
+  | { name: "processing_notify_opt_in_changed"; properties: { optedIn: boolean } }
+  | {
+      name: "review_feedback_submitted";
+      properties: { reason: ReviewFeedbackReason };
+    }
+  | {
+      name: "fine_tune_applied";
+      properties: { aiEnhancementEnabled: boolean; loudnessTarget: LoudnessTargetId; adjusted: boolean };
+    }
+  | { name: "fine_tune_reset" };
 
 export function track(event: AnalyticsEvent): void {
   if (__DEV__) {

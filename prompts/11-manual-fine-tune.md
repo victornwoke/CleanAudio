@@ -3,6 +3,7 @@
 ## Visual references
 
 - `prompt_material/06-enhancement-controls.png`
+- `prompt_material/cleanaudio-presets.png`
 
 ## Working rules
 
@@ -14,7 +15,6 @@
 6. Use Expo-compatible installation commands and a development build for native SDKs. Do not claim native functionality works in Expo Go.
 7. Finish loading, empty, permission-denied, offline, cancelled, success, and failure states that apply to this task.
 8. Run the available lint, type-check, and relevant tests. Report what was changed and any genuine blockers.
-
 
 ## Objective
 
