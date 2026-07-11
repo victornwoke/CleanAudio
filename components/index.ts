@@ -1,4 +1,5 @@
 export * from "./common/AppText";
+export * from "./common/AppTextInput";
 export * from "./common/AppButton";
 export * from "./common/AppIconButton";
 export * from "./common/AppCard";
@@ -12,3 +13,5 @@ export * from "./audio/DemoPlaybackCard";
 export * from "./onboarding/PersonaOptionCard";
 export * from "./onboarding/SplashMark";
 export * from "./onboarding/StepDots";
+export * from "./auth/AuthSheet";
+export * from "./auth/SocialAuthButton";
