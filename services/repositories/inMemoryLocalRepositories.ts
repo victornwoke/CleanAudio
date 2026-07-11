@@ -104,12 +104,16 @@ export function createInMemoryLocalRepositories(seed: readonly LibraryProject[] 
       },
       async cloneOwnedFiles(sourceProjectId, destinationProjectId) {
         for (const item of [...mediaFiles.values()]) {
-          if (item.projectId !== sourceProjectId) continue;
+          if (item.projectId !== sourceProjectId || item.ownership === "temporary") continue;
+          const versionPrefix = `${sourceProjectId}_`;
+          if (!item.versionId.startsWith(versionPrefix)) {
+            throw new Error(`Media version ${item.versionId} is not owned by project ${sourceProjectId}.`);
+          }
           const copy = {
             ...item,
             id: `${destinationProjectId}_${item.id}`,
             projectId: destinationProjectId,
-            versionId: item.versionId.replace(sourceProjectId, destinationProjectId),
+            versionId: `${destinationProjectId}_${item.versionId.slice(versionPrefix.length)}`,
           };
           mediaFiles.set(copy.id, copy);
         }

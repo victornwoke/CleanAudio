@@ -17,7 +17,6 @@ import { RenameProjectSheet } from "@/components/library/RenameProjectSheet";
 import { AppText } from "@/components/common/AppText";
 import { EmptyState } from "@/components/common/EmptyState";
 import { ErrorState } from "@/components/common/ErrorState";
-import { useProjectStore } from "@/store/useProjectStore";
 import { InlineBanner } from "@/components/common/InlineBanner";
 import { colors } from "@/constants/colors";
 import { iconNames } from "@/constants/images";
@@ -163,7 +162,7 @@ export default function LibraryScreen() {
     );
   }
   if (library.status === "error") {
-    return <View style={[styles.centered, { paddingTop: insets.top }]}><ErrorState title="Couldn’t load your library" description="Your recordings are still safe. Try again." recoverable onRetry={() => void useProjectStore.getState().load()} /></View>;
+    return <View style={[styles.centered, { paddingTop: insets.top }]}><ErrorState title="Couldn’t load your library" description="Your recordings are still safe. Try again." recoverable onRetry={() => void library.reload()} /></View>;
   }
 
   if (library.isEmpty) {

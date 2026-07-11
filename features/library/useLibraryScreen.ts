@@ -46,6 +46,7 @@ export interface UseLibraryScreenResult {
   duplicateProject: (id: string) => void;
   deleteProject: (id: string) => void;
   mutationError: string | null;
+  reload: () => Promise<void>;
 }
 
 export function useLibraryScreen(): UseLibraryScreenResult {
@@ -144,5 +145,6 @@ export function useLibraryScreen(): UseLibraryScreenResult {
     duplicateProject,
     deleteProject,
     mutationError,
+    reload: load,
   };
 }

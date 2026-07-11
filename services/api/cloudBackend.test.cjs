@@ -34,6 +34,24 @@ test("an idempotency key creates one billable enhancement job", async () => {
   assert.equal(first.id, second.id); assert.equal(backend.billableJobCount(), 1);
 });
 
+test("concurrent project mutations and exports execute once per idempotency key", async () => {
+  const backend = fixture();
+  const patchRequest = { authorization: "Bearer user_alice", idempotencyKey: "same-patch" };
+  const [firstPatch, secondPatch] = await Promise.all([
+    backend.patchProject(patchRequest, "project_a", { displayName: "Renamed", baseRevision: 1 }),
+    backend.patchProject(patchRequest, "project_a", { displayName: "Renamed", baseRevision: 1 }),
+  ]);
+  assert.equal(firstPatch.revision, 2);
+  assert.deepEqual(firstPatch, secondPatch);
+
+  const exportRequest = { authorization: "Bearer user_alice", idempotencyKey: "same-export" };
+  const [firstExport, secondExport] = await Promise.all([
+    backend.createExport(exportRequest, "project_a", { format: "mp3" }),
+    backend.createExport(exportRequest, "project_a", { format: "mp3" }),
+  ]);
+  assert.equal(firstExport.id, secondExport.id);
+});
+
 test("an expired signed URL is refreshed once", async () => {
   let issued = 0; let attempts = 0;
   await uploadWithSignedUrlRecovery(async () => ({ transferId: `t${++issued}`, url: `https://signed.invalid/${issued}`, expiresAt: new Date().toISOString(), headers: {} }), { async upload() { attempts += 1; if (attempts === 1) throw new CloudApiError("signed_url_expired", "Expired", true); } });

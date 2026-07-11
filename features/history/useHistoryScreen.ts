@@ -13,16 +13,18 @@ export function useHistoryScreen() {
   const [filter, setFilter] = useState<HistoryFilter>("all");
   const generation = useRef(0);
 
-  const reload = useCallback(async () => {
+  const load = useCallback(async (showLoading: boolean) => {
     const request = ++generation.current;
-    setStatus("loading");
+    if (showLoading) setStatus("loading");
     try {
       const result = await listProjectHistories();
       if (request === generation.current) { setItems(result); setStatus("loaded"); }
     } catch { if (request === generation.current) setStatus("error"); }
   }, []);
 
-  useEffect(() => { void reload(); return () => { generation.current += 1; }; }, [reload]);
+  const reload = useCallback(() => load(true), [load]);
+
+  useEffect(() => { void load(false); return () => { generation.current += 1; }; }, [load]);
 
   const visibleItems = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase();

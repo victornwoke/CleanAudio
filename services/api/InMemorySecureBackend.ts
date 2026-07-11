@@ -4,6 +4,7 @@ import { CloudApiError, type AuthenticatedRequest, type CloudEnhancementJob, typ
 const MAX_MEDIA_BYTES = 2 * 1024 * 1024 * 1024;
 const MAX_DURATION_SECONDS = 4 * 60 * 60;
 const SHA256 = /^[a-f0-9]{64}$/i;
+type IdempotentResult = CloudEnhancementJob | CloudExport | CloudProject | null;
 
 function requireIdempotency(request: AuthenticatedRequest): string {
   const key = request.idempotencyKey?.trim();
@@ -15,8 +16,9 @@ function requireIdempotency(request: AuthenticatedRequest): string {
 export class InMemorySecureBackend implements CloudBackend {
   private readonly projects = new Map<string, CloudProject>();
   private readonly jobs = new Map<string, CloudEnhancementJob>();
-  private readonly idempotentResults = new Map<string, { payload: string; result: CloudEnhancementJob | CloudExport | CloudProject | null }>();
+  private readonly idempotentResults = new Map<string, { payload: string; result: IdempotentResult }>();
   private readonly pendingJobs = new Map<string, Promise<CloudEnhancementJob>>();
+  private readonly pendingOperations = new Map<string, { payload: string; promise: Promise<IdempotentResult> }>();
   private sequence = 0;
 
   constructor(
@@ -45,6 +47,32 @@ export class InMemorySecureBackend implements CloudBackend {
     if (!entry) return undefined;
     if (entry.payload !== payload) throw new CloudApiError("validation_failed", "An idempotency key cannot be reused with a different request.");
     return (entry.result === null ? null : { ...entry.result }) as T;
+  }
+  private async executeIdempotent<T extends IdempotentResult>(
+    key: string,
+    payload: string,
+    operation: () => Promise<T> | T,
+  ): Promise<T> {
+    const completed = this.idempotentResults.get(key);
+    if (completed) {
+      if (completed.payload !== payload) throw new CloudApiError("validation_failed", "An idempotency key cannot be reused with a different request.");
+      return (completed.result === null ? null : { ...completed.result }) as T;
+    }
+    const pending = this.pendingOperations.get(key);
+    if (pending) {
+      if (pending.payload !== payload) throw new CloudApiError("validation_failed", "An idempotency key cannot be reused with a different request.");
+      const result = await pending.promise;
+      return (result === null ? null : { ...result }) as T;
+    }
+    const promise = Promise.resolve().then(operation);
+    this.pendingOperations.set(key, { payload, promise });
+    try {
+      const result = await promise;
+      this.idempotentResults.set(key, { payload, result });
+      return (result === null ? null : { ...result }) as T;
+    } finally {
+      this.pendingOperations.delete(key);
+    }
   }
 
   async createUpload(request: AuthenticatedRequest, input: UploadDescriptor): Promise<SignedTransfer> {
@@ -93,30 +121,35 @@ export class InMemorySecureBackend implements CloudBackend {
   async getProject(request: AuthenticatedRequest, id: string): Promise<CloudProject> { return { ...(await this.ownedProject(request, id)).project }; }
   async patchProject(request: AuthenticatedRequest, id: string, input: { displayName: string; baseRevision: number }): Promise<CloudProject> {
     const userId = await this.user(request); const key = `${userId}:patch:${requireIdempotency(request)}`; await this.requireCloud(userId);
-    const payload = JSON.stringify({ id, ...input }); const existing = this.replay<CloudProject>(key, payload); if (existing) return existing;
-    const { project } = await this.ownedProject(request, id);
-    if (project.revision !== input.baseRevision) throw new CloudApiError("conflict", "The project changed on another device.");
-    const displayName = input.displayName.trim(); if (!displayName || displayName.length > 160) throw new CloudApiError("validation_failed", "Project name is invalid.");
-    const next = { ...project, displayName, revision: project.revision + 1, updatedAt: new Date().toISOString() }; this.projects.set(id, next); this.idempotentResults.set(key, { payload, result: next }); return { ...next };
+    const payload = JSON.stringify({ id, ...input });
+    return this.executeIdempotent(key, payload, async () => {
+      const { project } = await this.ownedProject(request, id);
+      if (project.revision !== input.baseRevision) throw new CloudApiError("conflict", "The project changed on another device.");
+      const displayName = input.displayName.trim(); if (!displayName || displayName.length > 160) throw new CloudApiError("validation_failed", "Project name is invalid.");
+      const next = { ...project, displayName, revision: project.revision + 1, updatedAt: new Date().toISOString() }; this.projects.set(id, next); return next;
+    });
   }
   async deleteProject(request: AuthenticatedRequest, id: string, baseRevision: number): Promise<CloudProject> {
     const userId = await this.user(request); const key = `${userId}:delete-project:${requireIdempotency(request)}`; await this.requireCloud(userId);
-    const payload = JSON.stringify({ id, baseRevision }); const existing = this.replay<CloudProject>(key, payload); if (existing) return existing;
-    const { project } = await this.ownedProject(request, id);
-    if (project.revision !== baseRevision) throw new CloudApiError("conflict", "The project changed on another device.");
-    const now = new Date().toISOString(); const tombstone = { ...project, revision: project.revision + 1, updatedAt: now, deletedAt: now }; this.projects.set(id, tombstone); this.idempotentResults.set(key, { payload, result: tombstone }); return { ...tombstone };
+    const payload = JSON.stringify({ id, baseRevision });
+    return this.executeIdempotent(key, payload, async () => {
+      const { project } = await this.ownedProject(request, id);
+      if (project.revision !== baseRevision) throw new CloudApiError("conflict", "The project changed on another device.");
+      const now = new Date().toISOString(); const tombstone = { ...project, revision: project.revision + 1, updatedAt: now, deletedAt: now }; this.projects.set(id, tombstone); return tombstone;
+    });
   }
   async createExport(request: AuthenticatedRequest, projectId: string, _input: CreateExportInput): Promise<CloudExport> {
     const { userId } = await this.ownedProject(request, projectId); await this.requireCloud(userId); const key = `${userId}:export:${requireIdempotency(request)}`;
-    const payload = JSON.stringify({ projectId, input: _input }); const existing = this.replay<CloudExport>(key, payload); if (existing) return existing;
-    const value: CloudExport = { id: this.nextId("export"), projectId, status: "queued", createdAt: new Date().toISOString() }; this.idempotentResults.set(key, { payload, result: value }); return { ...value };
+    const payload = JSON.stringify({ projectId, input: _input });
+    return this.executeIdempotent(key, payload, () => ({ id: this.nextId("export"), projectId, status: "queued", createdAt: new Date().toISOString() }));
   }
   async deleteAccount(request: AuthenticatedRequest): Promise<void> {
     const userId = await this.user(request); const key = `${userId}:delete-account:${requireIdempotency(request)}`; const payload = "delete-account";
-    if (this.replay<null>(key, payload) === null && this.idempotentResults.has(key)) return;
-    for (const [id, project] of this.projects) if (project.ownerId === userId) this.projects.delete(id);
-    for (const [id, job] of this.jobs) if (job.ownerId === userId) this.jobs.delete(id);
-    for (const entryKey of [...this.idempotentResults.keys()]) if (entryKey.startsWith(`${userId}:`)) this.idempotentResults.delete(entryKey);
-    this.idempotentResults.set(key, { payload, result: null });
+    await this.executeIdempotent(key, payload, () => {
+      for (const [id, project] of this.projects) if (project.ownerId === userId) this.projects.delete(id);
+      for (const [id, job] of this.jobs) if (job.ownerId === userId) this.jobs.delete(id);
+      for (const entryKey of [...this.idempotentResults.keys()]) if (entryKey.startsWith(`${userId}:`)) this.idempotentResults.delete(entryKey);
+      return null;
+    });
   }
 }

@@ -27,8 +27,10 @@ export async function deleteHistoryProject(projectId: string, scope: DeleteScope
     return { status: "unavailable", message: "This is the only local copy. Delete the local project instead." };
   }
   if (scope === "downloaded_copy" || (scope === "local_and_cloud" && history.original.storageLocation !== "local")) {
-    await localRepositories.projects.upsert({ ...history.project, syncState: "cloud_placeholder" });
-    await localRepositories.versions.putOriginal(projectId, { ...history.original, storageLocation: "cloud" });
+    try {
+      await localRepositories.projects.upsert({ ...history.project, syncState: "cloud_placeholder" });
+      await localRepositories.versions.putOriginal(projectId, { ...history.original, storageLocation: "cloud" });
+    } catch { /* Placeholder cleanup is best effort; preserve the deletion outcome. */ }
     return scope === "local_and_cloud"
       ? { status: "partial", message: "Local copies were removed, but cloud deletion needs the sync service and could not be confirmed." }
       : { status: "deleted" };
