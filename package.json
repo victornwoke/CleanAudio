@@ -4,7 +4,11 @@
   "version": "1.0.0",
   "dependencies": {
     "@expo/ui": "~57.0.4",
+    "@expo/vector-icons": "^15.0.2",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "expo": "~57.0.4",
+    "expo-asset": "~57.0.3",
+    "expo-audio": "~57.0.0",
     "expo-constants": "~57.0.3",
     "expo-device": "~57.0.0",
     "expo-font": "~57.0.0",
@@ -44,7 +48,10 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"No test runner is installed yet\" && exit 1",
+    "verify": "npm run typecheck && npm run lint && npx expo-doctor && npm run test"
   },
   "private": true,
   "overrides": {

@@ -46,3 +46,12 @@ example
 .env
 MASTER-BUILD-PROMPT.md
 PRD.md
+
+.env
+.env.local
+.env.development
+.env.production
+*.p8
+*.p12
+*.mobileprovision
+sentry.properties

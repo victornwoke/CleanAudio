@@ -21,6 +21,7 @@ You MUST:
 - replicate all visible UI elements
 
 Do not approximate. Do not guess
+do not add internal prompt reference text in the code, Do not expose internal prompt paths in user-facing copy.
 
 ## 1. Purpose
 
