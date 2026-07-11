@@ -1,7 +1,5 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
-
-const STORAGE_KEY = "cleanaudio.onboarding.completed";
+import { useOnboardingStore } from "@/store/useOnboardingStore";
 
 export type OnboardingStatus = "loading" | "first-launch" | "complete";
 
@@ -18,9 +16,9 @@ export function useOnboardingStatus(): OnboardingStatus {
 
   useEffect(() => {
     let cancelled = false;
-    AsyncStorage.getItem(STORAGE_KEY)
-      .then((value) => {
-        if (!cancelled) setStatus(value === "true" ? "complete" : "first-launch");
+    Promise.resolve(useOnboardingStore.persist.rehydrate())
+      .then(() => {
+        if (!cancelled) setStatus(useOnboardingStore.getState().hasCompleted ? "complete" : "first-launch");
       })
       .catch(() => {
         if (!cancelled) setStatus("first-launch");
@@ -34,5 +32,5 @@ export function useOnboardingStatus(): OnboardingStatus {
 }
 
 export async function markOnboardingComplete(): Promise<void> {
-  await AsyncStorage.setItem(STORAGE_KEY, "true");
+  useOnboardingStore.getState().setCompleted();
 }

@@ -14,7 +14,22 @@ export type AccountDeletionResult =
  * runs. Not wired to any UI in this pass; Settings (prompts/21) is where a
  * "Delete account" action will call this.
  */
-export async function requestAccountDeletion(): Promise<AccountDeletionResult> {
+export interface AccountDeletionBackend {
+  deleteAccount(idempotencyKey: string): Promise<void>;
+}
+
+export async function requestAccountDeletion(
+  backend?: AccountDeletionBackend,
+  idempotencyKey = `account-delete-${Date.now()}`,
+): Promise<AccountDeletionResult> {
+  if (backend) {
+    try {
+      await backend.deleteAccount(idempotencyKey);
+      return { ok: true };
+    } catch {
+      return { ok: false, error: { kind: "unexpected", message: "We couldn't delete your account. Please try again." } };
+    }
+  }
   return {
     ok: false,
     error: {

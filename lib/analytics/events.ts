@@ -1,3 +1,4 @@
+import type { ExportErrorCode, ExportFormat } from "@/types/export";
 import type { LoudnessTargetId } from "@/types/fineTune";
 import type { PersonaId } from "@/types/onboarding";
 import type { EnhancementAdapter } from "@/types/library";
@@ -44,7 +45,9 @@ export type AnalyticsEvent =
       name: "fine_tune_applied";
       properties: { aiEnhancementEnabled: boolean; loudnessTarget: LoudnessTargetId; adjusted: boolean };
     }
-  | { name: "fine_tune_reset" };
+  | { name: "fine_tune_reset" }
+  | { name: "export_completed"; properties: { format: ExportFormat } }
+  | { name: "export_failed"; properties: { errorCode: ExportErrorCode } };
 
 export function track(event: AnalyticsEvent): void {
   if (__DEV__) {

@@ -2,6 +2,7 @@ import { router } from "expo-router";
 
 import type { AudioProject } from "@/types/audio";
 import type { PresetId } from "@/types/onboarding";
+import { handoffExportProject } from "@/features/export/exportProjectHandoff";
 
 function getAudioProjectRouteParams(project: AudioProject) {
   return {
@@ -99,4 +100,17 @@ export function goToReview(project: AudioProject, options?: { replace?: boolean 
   } else {
     router.push(target);
   }
+}
+
+/**
+ * Hand-off from the before/after review screen to export
+ * (`prompts/12-export-and-success.md`). Export hydrates the project from the
+ * shared repository, keeping media metadata out of navigation URLs.
+ */
+export function goToExport(project: AudioProject): void {
+  handoffExportProject(project);
+  router.push({
+    pathname: "/export/[projectId]",
+    params: { projectId: project.id },
+  });
 }
