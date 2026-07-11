@@ -153,6 +153,31 @@ export const developmentMockProcessingAdapter: ProcessingJobAdapter = {
   },
 };
 
+/** Production-safe legacy screen bridge until the new service factory is
+ * supplied with a genuine adapter. It fails honestly and never starts the
+ * simulated state machine. */
+export const unavailableProcessingAdapter: ProcessingJobAdapter = {
+  subscribe(jobId, onSnapshot) {
+    onSnapshot({
+      jobId,
+      status: "failed",
+      stage: null,
+      progress: null,
+      estimatedRemainingSeconds: null,
+      startedAt: Date.now(),
+      adapter: "native",
+      errorCode: "sdk_unavailable",
+    });
+    return () => undefined;
+  },
+  cancel() {},
+  retry() {},
+};
+
+export const audioProcessingJobAdapter: ProcessingJobAdapter = __DEV__
+  ? developmentMockProcessingAdapter
+  : unavailableProcessingAdapter;
+
 /**
  * Dev-only hook for exercising the failure state during manual verification
  * (same technique used in `prompts/06-home-library.md`'s notes: temporarily

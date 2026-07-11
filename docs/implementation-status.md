@@ -28,7 +28,7 @@ Status values: `not-started` | `in-progress` | `blocked` | `verified`. Updated b
 | Export & success (`prompts/12`) | in-progress | Real export screen built and verified on-device against `09-export.png`. See notes below — kept from `verified` by the same no-tap-automation limitation recorded in every prior prompt, plus the export/enhancement adapters and RevenueCat entitlement it depends on (`prompts/15`/`17`) not existing yet. |
 | History & file detail (`prompts/13`) | in-progress | History tab and full immutable file-detail/version UI implemented; persistence, real adapters, and confirmed cloud deletion await prompts 14–16. See notes below. |
 | Zustand & local data (`prompts/14`) | verified | Zustand stores, explicit versioned hydration, narrow selectors, and typed local repository boundaries are implemented. The current repository implementation is intentionally in-memory pending an approved SQLite package; see notes below. |
-| Audio domain & adapters (`prompts/15`) | not-started | No native/cloud/mock adapter exists yet; this is the prompt that must define the typed boundary before any "enhance" UI claims real processing. |
+| Audio domain & adapters (`prompts/15`) | verified | Production contracts, capability routing, unavailable native/cloud seams, and an explicitly opt-in bundled-demo-only development adapter are implemented. No real DSP module or backend exists, so user media enhancement remains unavailable rather than faked. See notes below. |
 | Backend cloud sync & jobs (`prompts/16`) | not-started | No backend integration exists. |
 | RevenueCat subscriptions (`prompts/17`) | not-started | RevenueCat not installed. |
 
@@ -50,6 +50,16 @@ Status values: `not-started` | `in-progress` | `blocked` | `verified`. Updated b
 - See `docs/project-audit.md` §8 for PRD requirements (real-time call enhancement, on-device ML inference, shared C++ DSP core) that will require custom native modules rather than ordinary Expo/React Native JavaScript when their turn comes.
 - **The structured project/version repository is currently in-memory, not SQLite or cloud-synced.** Prompt 14 now owns the typed repository contracts and the library writes through that boundary, but no SQLite option is installed or approved in the repository. `features/library/sampleLibraryData.ts` remains the development seed so the existing catalog UI stays populated; its processed entries remain illustrative and are not claims of real enhancement. A later persistence decision can replace `createInMemoryLocalRepositories()` without changing store consumers; cloud sync remains prompt 16.
 - **Import from a native OS share extension is not implemented.** `prompts/07`'s Import UI spec lists "import from share extension where supported" as a should-have. A genuine entry in other apps' share sheets requires a native iOS Share Extension target (config plugin + Xcode target) or Android intent-filter beyond ordinary Expo/RN JavaScript, and no approved package for this exists in `AGENTS.md`'s stack. Not built in this pass — flagged rather than faked with a non-functional row.
+
+## `prompts/15-audio-domain-and-adapters.md` — verification notes (2026-07-11)
+
+- Added the production audio domain contract, including assets/versions, inspection, enhancement requests/jobs/progress, loudness, export, typed errors, checksums, idempotency, provenance, and capability data.
+- Added recorder, inspector/extraction, waveform, enhancement, playback, export, and service-factory boundaries. Heavy media work remains behind these interfaces.
+- Added native and cloud adapter seams that truthfully report unavailable until a real Expo native module and prompt 16 backend exist. Production cannot opt into the development mock.
+- The development adapter is explicit and accepts only `bundled-demo` assets; it cannot copy or label user media as enhanced. Adapter provenance is required on every enhancement job/version.
+- Routing uses connectivity, duration, device support, entitlement, selected quality, local-model availability, cloud availability, and explicit upload consent. It makes no performance promises.
+- No visual references are named in prompt 15 and no UI was changed. These additions are TypeScript-only and require no native rebuild.
+- Verified with `npm run typecheck`, `npm run lint`, and the routing-policy tests through `npm run test`.
 
 ## `prompts/14-zustand-and-local-data.md` — verification notes (2026-07-11)
 

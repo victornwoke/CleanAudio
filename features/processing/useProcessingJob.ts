@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { AppState } from "react-native";
 
-import { developmentMockProcessingAdapter } from "@/services/audio/processingJobAdapter";
+import { audioProcessingJobAdapter } from "@/services/audio/processingJobAdapter";
 import type { ProcessingJobSnapshot } from "@/types/processing";
 
-const adapter = developmentMockProcessingAdapter;
+const adapter = audioProcessingJobAdapter;
 
 export interface UseProcessingJobResult {
   snapshot: ProcessingJobSnapshot | null;

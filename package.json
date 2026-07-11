@@ -61,7 +61,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test": "echo \"No test runner is installed yet\" && exit 1",
+    "test": "tsc --ignoreConfig services/audio/enhancementRoutingPolicy.ts types/audioDomainError.ts --outDir /tmp/cleanaudio-domain-tests --module node16 --moduleResolution node16 --target es2022 --skipLibCheck && node --test services/audio/*.test.cjs",
     "verify": "npm run typecheck && npm run lint && npx expo-doctor && npm run test"
   },
   "private": true,
