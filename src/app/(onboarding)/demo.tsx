@@ -1,20 +1,20 @@
 import { router } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 
+import { DemoPlaybackCard } from "@/components/audio/DemoPlaybackCard";
 import { AppButton } from "@/components/common/AppButton";
 import { AppScreen } from "@/components/common/AppScreen";
 import { AppText } from "@/components/common/AppText";
-import { DemoPlaybackCard } from "@/components/audio/DemoPlaybackCard";
 import { StepDots } from "@/components/onboarding/StepDots";
 import { spacing } from "@/constants/spacing";
-import { markOnboardingComplete } from "@/features/onboarding/useOnboardingStatus";
-import { DEFAULT_PRESET_ID } from "@/features/onboarding/personas";
 import {
   getDemoHeard,
   saveDefaultPresetOnly,
 } from "@/features/onboarding/onboardingPreferences";
+import { DEFAULT_PRESET_ID } from "@/features/onboarding/personas";
 import { useDemoPlayback } from "@/features/onboarding/useDemoPlayback";
+import { markOnboardingComplete } from "@/features/onboarding/useOnboardingStatus";
 import { track } from "@/lib/analytics/events";
 
 /**
@@ -24,32 +24,46 @@ import { track } from "@/lib/analytics/events";
  */
 export default function DemoScreen() {
   const playback = useDemoPlayback();
+  const [completionError, setCompletionError] = useState<string | null>(null);
+  const [isCompleting, setIsCompleting] = useState(false);
 
   useEffect(() => {
     track({ name: "demo_started" });
   }, []);
 
   function handleTryOwnAudio() {
-    track({ name: "onboarding_cta_tapped", properties: { cta: "try_own_audio" } });
+    track({
+      name: "onboarding_cta_tapped",
+      properties: { cta: "try_own_audio" },
+    });
     router.push("/(onboarding)/persona");
   }
 
   async function handleExploreFirst() {
-    track({ name: "onboarding_cta_tapped", properties: { cta: "explore_first" } });
+    track({
+      name: "onboarding_cta_tapped",
+      properties: { cta: "explore_first" },
+    });
+    setCompletionError(null);
+    setIsCompleting(true);
+
     try {
-      const demoHeard = await getDemoHeard().catch(() => null);
-      await Promise.allSettled([
+      const [demoHeard] = await Promise.all([
+        getDemoHeard(),
         saveDefaultPresetOnly(DEFAULT_PRESET_ID),
         markOnboardingComplete(),
       ]);
-      if (demoHeard !== null) {
-        track({
-          name: "onboarding_completed",
-          properties: { personaId: null, demoHeard },
-        });
-      }
-    } finally {
+      track({
+        name: "onboarding_completed",
+        properties: { personaId: null, demoHeard },
+      });
       router.replace("/(tabs)/library");
+    } catch {
+      setCompletionError(
+        "We couldn't save your onboarding progress. Please try again.",
+      );
+    } finally {
+      setIsCompleting(false);
     }
   }
 
@@ -61,8 +75,8 @@ export default function DemoScreen() {
         <View style={{ gap: spacing.xs }}>
           <AppText variant="display">Hear the difference.</AppText>
           <AppText variant="body" color="secondary">
-            One tap removes background noise, evens out levels, and masters
-            your audio to studio-ready quality.
+            One tap removes background noise, evens out levels, and masters your
+            audio to studio-ready quality.
           </AppText>
         </View>
 
@@ -79,11 +93,26 @@ export default function DemoScreen() {
         <View style={{ flex: 1 }} />
 
         <View style={{ gap: spacing.sm }}>
-          <AppButton label="Try it with my audio" onPress={handleTryOwnAudio} />
+          {completionError ? (
+            <AppText
+              variant="body"
+              color="error"
+              align="center"
+              accessibilityRole="alert"
+            >
+              {completionError}
+            </AppText>
+          ) : null}
           <AppButton
-            label="Explore first"
+            label="Try it with my audio"
+            onPress={handleTryOwnAudio}
+            disabled={isCompleting}
+          />
+          <AppButton
+            label={completionError ? "Try again" : "Explore first"}
             variant="ghost"
             onPress={handleExploreFirst}
+            loading={isCompleting}
           />
         </View>
       </View>

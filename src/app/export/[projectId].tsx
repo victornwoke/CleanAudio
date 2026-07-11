@@ -10,9 +10,9 @@ import { useRequiredParam } from "@/hooks/useRequiredParam";
 
 /**
  * Account/export boundary (AGENTS.md §7/§8, PRD §11) — guarded by
- * `useRequireAuth`, which currently always redirects to sign-in since
- * Clerk isn't installed yet (prompts/05). Real format/quality/destination
- * UI (`09-export.png`) is built in prompts/12-export-and-success.md.
+ * `useRequireAuth`, now backed by real Clerk session state (prompts/05).
+ * Real format/quality/destination UI (`09-export.png`) is built in
+ * prompts/12-export-and-success.md.
  */
 export default function ExportScreen() {
   const { projectId } = useLocalSearchParams<{ projectId: string }>();
@@ -36,7 +36,7 @@ export default function ExportScreen() {
     );
   }
 
-  if (status === "guest") {
+  if (status !== "authenticated") {
     return <AppScreen>{null}</AppScreen>;
   }
 

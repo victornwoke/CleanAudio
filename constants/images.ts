@@ -66,6 +66,11 @@ export const iconNames = {
   // Splash mark (`01-splash.png`)
   brandMark: "pulse",
 
+  // Authentication (`03-authentication.png`)
+  socialApple: "logo-apple",
+  socialGoogle: "logo-google",
+  socialEmail: "mail-outline",
+
   // States
   empty: "file-tray-outline",
   error: "alert-circle-outline",
