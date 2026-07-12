@@ -8,6 +8,7 @@ import type { PresetRecommendationSource } from "@/types/presets";
 import type { ProcessingErrorCode, ProcessingStage } from "@/types/processing";
 import type { ReviewFeedbackReason } from "@/types/review";
 import type { SubscriptionErrorCode, SubscriptionPlanId } from "@/types/subscription";
+import { usePreferencesStore } from "@/store/usePreferencesStore";
 
 import { findForbiddenPropertyKey } from "./properties";
 import { posthog } from "./posthog";
@@ -86,12 +87,17 @@ export type AnalyticsEvent =
 
 /**
  * Sends a typed analytics event to PostHog. Never throws — an analytics
- * outage must not block the user (`CLAUDE.md` §13). In development, also
- * warns (without sending) if a payload accidentally carries a forbidden key
- * name, so a future call site can't silently leak PII through this typed
- * boundary.
+ * outage must not block the user (`CLAUDE.md` §13). Respects the user's
+ * real "Share analytics" privacy preference
+ * (`usePreferencesStore#analyticsEnabled`, `prompts/21-settings-privacy-help.md`)
+ * — turning it off genuinely stops every event, not just a subset. In
+ * development, also warns (without sending) if a payload accidentally
+ * carries a forbidden key name, so a future call site can't silently leak
+ * PII through this typed boundary.
  */
 export function track(event: AnalyticsEvent): void {
+  if (!usePreferencesStore.getState().analyticsEnabled) return;
+
   const properties = "properties" in event ? event.properties : undefined;
 
   if (__DEV__) {

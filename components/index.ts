@@ -51,3 +51,8 @@ export * from "./paywall/FeatureComparison";
 export * from "./paywall/PurchaseLegalText";
 export * from "./notifications/PermissionPrimer";
 export * from "./notifications/NotificationPreferenceRow";
+export * from "./settings/SettingsSection";
+export * from "./settings/SettingsRow";
+export * from "./settings/OptionPickerSheet";
+export * from "./settings/NotificationToggleRow";
+export * from "./settings/DiagnosticReportSheet";

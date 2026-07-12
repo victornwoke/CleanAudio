@@ -129,6 +129,23 @@ export const iconNames = {
   radioSelected: "radio-button-on",
   radioUnselected: "radio-button-off",
   discountBadge: "pricetag-outline",
+
+  // Settings / privacy / help (`prompts/21-settings-privacy-help.md`,
+  // `12-settings.png`). Rows not covered by the PNG's visible fold
+  // (Privacy, Help) reuse the closest existing semantic glyph where one
+  // already fits rather than adding a near-duplicate.
+  loudnessTarget: "speedometer-outline",
+  keepOriginals: "copy-outline",
+  autoCleanup: "refresh-circle-outline",
+  clearCache: "trash-outline",
+  removeDownloads: "cloud-offline-outline",
+  analyticsPreference: "stats-chart-outline",
+  diagnostics: "bug-outline",
+  dataExport: "cloud-download-outline",
+  deleteAccount: "trash-outline",
+  signOut: "log-out-outline",
+  faq: "help-buoy-outline",
+  contactSupport: "chatbubble-ellipses-outline",
 } as const satisfies Record<string, IconName>;
 
 export type IconToken = keyof typeof iconNames;

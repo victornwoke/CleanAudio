@@ -1,6 +1,10 @@
 import Constants from "expo-constants";
+import * as Device from "expo-device";
 import { Platform } from "react-native";
 import * as Sentry from "@sentry/react-native";
+
+import { usePreferencesStore } from "@/store/usePreferencesStore";
+import type { DiagnosticReportBundle, DiagnosticSubmitResult } from "@/types/settings";
 
 import {
   scrubBreadcrumb,
@@ -166,6 +170,19 @@ const EXPECTED_ERROR_CODES = new Set([
   "offline",
 ]);
 
+/**
+ * Real "Share diagnostics" privacy preference
+ * (`usePreferencesStore#diagnosticSharingEnabled`,
+ * `prompts/21-settings-privacy-help.md`). Checked at each capture call
+ * rather than at `configureSentryOnce()` time, since `Sentry.init()` runs
+ * from root-layout module scope before the persisted preference has
+ * necessarily hydrated — gating every capture call is simpler and more
+ * current than trying to conditionally re-init the SDK.
+ */
+function isDiagnosticSharingEnabled(): boolean {
+  return usePreferencesStore.getState().diagnosticSharingEnabled;
+}
+
 function buildSafeContext(context: SafeMonitoringContext): Record<string, string> {
   const safe: Record<string, string> = { app_version: buildRelease() };
   for (const [key, value] of Object.entries(context)) {
@@ -182,7 +199,7 @@ function buildSafeContext(context: SafeMonitoringContext): Record<string, string
  * themselves.
  */
 export function captureError(error: unknown, context: SafeMonitoringContext = {}): void {
-  if (!configured) return;
+  if (!configured || !isDiagnosticSharingEnabled()) return;
   try {
     if (context.errorCode && EXPECTED_ERROR_CODES.has(context.errorCode)) {
       addSafeBreadcrumb(`expected:${context.errorCode}`, context);
@@ -202,7 +219,7 @@ export function captureError(error: unknown, context: SafeMonitoringContext = {}
 
 /** Lightweight breadcrumb using only safe context fields. */
 export function addSafeBreadcrumb(message: string, context: SafeMonitoringContext = {}): void {
-  if (!configured) return;
+  if (!configured || !isDiagnosticSharingEnabled()) return;
   try {
     Sentry.addBreadcrumb({ message, level: "info", data: buildSafeContext(context) });
   } catch {
@@ -253,4 +270,53 @@ export function captureMonitoringTestEvent(): void {
   }
   addSafeBreadcrumb("monitoring_test_event_triggered");
   Sentry.captureMessage("CleanAudio monitoring diagnostic test event", "info");
+}
+
+/**
+ * Builds the Help screen's "Submit diagnostic report" bundle
+ * (`prompts/21-settings-privacy-help.md`: "Diagnostic bundles exclude media
+ * by default"). Deliberately only safe, high-level technical fields — no
+ * media, filenames, transcripts, or account identifiers — matching
+ * `SafeMonitoringContext`'s existing allowlist philosophy. `Device.*` reads
+ * are the same synchronous constants already available via the installed
+ * `expo-device` package (no new native dependency).
+ */
+export function buildDiagnosticReportBundle(entitlementTier: "free" | "pro"): DiagnosticReportBundle {
+  return {
+    appVersion: buildRelease(),
+    platform: Platform.OS,
+    osVersion: Device.osVersion ?? "unknown",
+    deviceModel: Device.modelName ?? null,
+    entitlementTier,
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Sends a user-initiated diagnostic report to Sentry after the Help
+ * screen's explicit preview/consent step
+ * (`prompts/21-settings-privacy-help.md` "submit diagnostic report with
+ * explicit preview/consent"). `note` is free text the user authored
+ * themselves for support purposes — the caller's UI must make clear it
+ * should not contain private details, but this function does not scrub it
+ * further (unlike `scrubEvent.ts`, which targets *automatically* attached
+ * SDK data, not a message the user deliberately typed and previewed).
+ * Fails honestly rather than silently no-oping so the Help screen can tell
+ * the user their report was not actually sent.
+ */
+export function submitDiagnosticReport(bundle: DiagnosticReportBundle, note: string): DiagnosticSubmitResult {
+  if (!isDiagnosticSharingEnabled()) return { ok: false, reason: "diagnostics_disabled" };
+  if (!configured) return { ok: false, reason: "monitoring_unavailable" };
+  try {
+    Sentry.withScope((scope) => {
+      scope.setContext("diagnostic_report", { ...bundle });
+      Sentry.captureMessage(
+        note.trim() ? `User diagnostic report: ${note.trim()}` : "User diagnostic report (no additional details provided)",
+        "info"
+      );
+    });
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: "monitoring_unavailable" };
+  }
 }
