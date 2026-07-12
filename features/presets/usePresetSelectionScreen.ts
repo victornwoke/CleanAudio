@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 
+import { track } from "@/lib/analytics/events";
 import { goToProcessing } from "@/features/audio/audioProjectNavigation";
 import { getPresetRecommendation } from "@/features/presets/presetRecommendation";
 import type { AudioProject, AudioProjectSource, MediaContainer } from "@/types/audio";
@@ -123,6 +124,7 @@ export function usePresetSelectionScreen() {
       setRecommendation(result);
       setSelectedId(result.source === "carried_over" ? result.presetId : "auto");
       setCompletedRecommendationKey(requestKey);
+      track({ name: "preset_recommended", properties: { presetId: result.presetId, source: result.source } });
     });
 
     return () => {
@@ -154,6 +156,7 @@ export function usePresetSelectionScreen() {
 
   function confirm(): void {
     if (!project || !effectivePresetId) return;
+    track({ name: "preset_selected", properties: { presetId: effectivePresetId } });
     goToProcessing(project, effectivePresetId);
   }
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Linking } from "react-native";
 
+import { track } from "@/lib/analytics/events";
 import {
   getOneSignalPermissionStatus,
   requestOneSignalPushPermission,
@@ -56,6 +57,7 @@ export function useNotificationPermission(): UseNotificationPermissionResult {
     try {
       const granted = await requestOneSignalPushPermission();
       await refresh();
+      track({ name: "notification_permission_result", properties: { granted } });
       return granted;
     } finally {
       setRequesting(false);

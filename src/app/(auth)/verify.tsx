@@ -10,6 +10,7 @@ import { spacing } from "@/constants/spacing";
 import { createAuthNavigate, resolveReturnToHref } from "@/features/auth/navigation";
 import { useAuthStatus } from "@/features/auth/useAuthStatus";
 import { mapClerkError } from "@/lib/auth/mapClerkError";
+import { track } from "@/lib/analytics/events";
 
 type VerifyMode = "signup" | "reset";
 
@@ -49,6 +50,7 @@ export default function VerifyScreen() {
         return;
       }
       if (signUp.status === "complete") {
+        track({ name: "user_signed_up", properties: { method: "email" } });
         await signUp.finalize({ navigate: createAuthNavigate(returnTo ?? null) });
       } else {
         setFormError(

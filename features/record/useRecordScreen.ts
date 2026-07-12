@@ -9,6 +9,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, Linking } from "react-native";
 
+import { track } from "@/lib/analytics/events";
 import { finalizeRecordedProject } from "@/services/media/mediaRecordingService";
 import type { AudioProject } from "@/types/audio";
 import type { PresetId } from "@/types/onboarding";
@@ -137,6 +138,7 @@ export function useRecordScreen(): UseRecordScreenResult {
         await recorder.prepareToRecordAsync();
         recorder.record();
         setPhase("recording");
+        track({ name: "recording_started" });
         try {
           const input = await recorder.getCurrentInput();
           setInputSourceLabel(input.name);
@@ -184,7 +186,9 @@ export function useRecordScreen(): UseRecordScreenResult {
         setPhase("idle");
         return null;
       }
-      return finalizeRecordedProject({ uri, durationSeconds });
+      const project = await finalizeRecordedProject({ uri, durationSeconds });
+      track({ name: "recording_completed", properties: { durationSeconds } });
+      return project;
     } catch {
       setErrorMessage("The recording couldn't be saved. Please try again.");
       setPhase("idle");

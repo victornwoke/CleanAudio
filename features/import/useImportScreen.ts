@@ -3,6 +3,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Linking } from "react-native";
 
+import { track } from "@/lib/analytics/events";
 import { finalizeImportedProject } from "@/services/media/mediaImportService";
 import { getFileExtension, isSupportedFile } from "@/services/media/mediaFormats";
 import { MediaValidationError, type AudioProject } from "@/types/audio";
@@ -97,6 +98,10 @@ export function useImportScreen({ onImported }: UseImportScreenParams): UseImpor
           // Recent history is a convenience; a storage failure must not discard a valid import.
         }
         setRecentImports((current) => [project, ...current.filter((p) => p.id !== project.id)].slice(0, 5));
+        track({
+          name: "media_import_completed",
+          properties: { mediaType: project.mediaType, durationSeconds: project.durationSeconds },
+        });
         setStatus("idle");
         onImported(project);
       } catch (error) {
@@ -107,6 +112,7 @@ export function useImportScreen({ onImported }: UseImportScreenParams): UseImpor
   );
 
   const pickFromLibrary = useCallback(async () => {
+    track({ name: "media_import_started", properties: { source: "photos" } });
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       const outcome = permission.canAskAgain ? "denied" : "blocked";
@@ -138,6 +144,7 @@ export function useImportScreen({ onImported }: UseImportScreenParams): UseImpor
   }, [finishImport, handleValidationError]);
 
   const pickFromFiles = useCallback(async () => {
+    track({ name: "media_import_started", properties: { source: "files" } });
     const result = await DocumentPicker.getDocumentAsync({
       type: ["audio/*", "video/*"],
       multiple: false,

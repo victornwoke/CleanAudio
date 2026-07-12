@@ -97,7 +97,11 @@ export default function PaywallScreen() {
       return;
     }
 
-    track({ name: "purchase_failed", properties: { planId: selectedPlanId, errorCode: result.code } });
+    if (result.code === "purchase_cancelled") {
+      track({ name: "purchase_cancelled", properties: { planId: selectedPlanId } });
+    } else {
+      track({ name: "purchase_failed", properties: { planId: selectedPlanId, errorCode: result.code } });
+    }
     if (isSubscriptionErrorRecoverable(result.code)) {
       setPurchaseError(result.code);
     }

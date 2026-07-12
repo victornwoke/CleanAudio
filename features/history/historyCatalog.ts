@@ -1,3 +1,4 @@
+import { track } from "@/lib/analytics/events";
 import { localRepositories } from "@/services/repositories";
 import type { DeleteResult, DeleteScope, ProjectHistory } from "@/types/history";
 
@@ -31,11 +32,13 @@ export async function deleteHistoryProject(projectId: string, scope: DeleteScope
       await localRepositories.projects.upsert({ ...history.project, syncState: "cloud_placeholder" });
       await localRepositories.versions.putOriginal(projectId, { ...history.original, storageLocation: "cloud" });
     } catch { /* Placeholder cleanup is best effort; preserve the deletion outcome. */ }
+    if (scope !== "local_and_cloud") track({ name: "project_deleted", properties: { scope } });
     return scope === "local_and_cloud"
       ? { status: "partial", message: "Local copies were removed, but cloud deletion needs the sync service and could not be confirmed." }
       : { status: "deleted" };
   }
   await localRepositories.projects.remove(projectId);
   try { await localRepositories.mediaFiles.deleteOwnedFiles(projectId); } catch { /* best effort */ }
+  track({ name: "project_deleted", properties: { scope } });
   return { status: "deleted" };
 }

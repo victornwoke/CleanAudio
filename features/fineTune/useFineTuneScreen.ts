@@ -41,6 +41,11 @@ export function useFineTuneScreen(project: AudioProject): UseFineTuneScreenResul
   const [settings, setSettings] = useState<FineTuneSettings>(autoSettingsRef.current);
   const isDirty = !areFineTuneSettingsEqual(settings, autoSettingsRef.current);
 
+  useEffect(() => {
+    track({ name: "fine_tune_opened", properties: { presetId: project.presetId ?? null } });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.id]);
+
   const [enhancedResult, setEnhancedResult] = useState<EnhancedAudioResult | null>(null);
   const [isLoadingEnhancedResult, setIsLoadingEnhancedResult] = useState(true);
 

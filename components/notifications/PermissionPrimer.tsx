@@ -1,6 +1,9 @@
+import { useEffect, useRef } from "react";
+
 import { AppButton } from "@/components/common/AppButton";
 import { iconNames } from "@/constants/images";
 import { useNotificationPermission } from "@/features/notifications/useNotificationPermission";
+import { track } from "@/lib/analytics/events";
 
 export interface PermissionPrimerProps {
   /** The durable "notify me" intent
@@ -32,6 +35,14 @@ export interface PermissionPrimerProps {
 export function PermissionPrimer({ optedIn, onAccept, onDark = false }: PermissionPrimerProps) {
   const { status, requesting, requestPermission, openSettings } = useNotificationPermission();
   const variant = onDark ? "outlineOnDark" : "outline";
+
+  const hasTrackedViewRef = useRef(false);
+  useEffect(() => {
+    if (hasTrackedViewRef.current) return;
+    hasTrackedViewRef.current = true;
+    track({ name: "notification_primer_viewed", properties: { status } });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (status === "unavailable") {
     return (

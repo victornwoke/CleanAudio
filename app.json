@@ -71,7 +71,14 @@
           }
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "@sentry/react-native",
+        {
+          "organization": "abc-of-cloud-computing",
+          "project": "cleanaudio"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

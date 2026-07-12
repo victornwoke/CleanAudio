@@ -2,6 +2,7 @@ import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { useCallback, useEffect, useState } from "react";
 import { AppState } from "react-native";
 
+import { track } from "@/lib/analytics/events";
 import type { AudioProject } from "@/types/audio";
 
 import type { EnhancedAudioResult } from "./enhancedAudioResult";
@@ -115,6 +116,7 @@ export function useReviewPlayback(
       // where the user left it.
 
       setActiveTrack(next);
+      track({ name: "comparison_used", properties: { variant: next } });
     },
     [
       activeTrack,

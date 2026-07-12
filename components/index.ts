@@ -8,6 +8,7 @@ export * from "./common/StatusBadge";
 export * from "./common/SegmentedControl";
 export * from "./common/EmptyState";
 export * from "./common/ErrorState";
+export * from "./common/AppErrorBoundary";
 export * from "./common/BottomSheet";
 export * from "./common/InlineBanner";
 export * from "./common/Slider";
