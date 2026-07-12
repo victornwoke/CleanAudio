@@ -38,6 +38,7 @@ export interface VersionRepository {
   listHistories(): Promise<ProjectHistory[]>;
   putOriginal(projectId: string, version: OriginalVersion): Promise<void>;
   addEnhancement(projectId: string, version: EnhancementVersion): Promise<void>;
+  removeEnhancement(projectId: string, versionId: string): Promise<void>;
 }
 
 export interface JobRepository {
@@ -56,6 +57,8 @@ export interface ExportRepository {
 
 export interface MediaFileRepository {
   registerOriginal(project: AudioProject): Promise<MediaFileRecord>;
+  registerGenerated(record: MediaFileRecord): Promise<void>;
+  remove(recordId: string): Promise<void>;
   listForProject(projectId: string): Promise<MediaFileRecord[]>;
   cleanupTemporary(projectId: string): Promise<void>;
   deleteOwnedFiles(projectId: string): Promise<void>;

@@ -13,6 +13,7 @@ interface RouteParams extends AudioProjectRouteParams {
 }
 
 const reportedTerminalAttempts = new Set<string>();
+const reportedStartAttempts = new Set<string>();
 
 export interface UseProcessingScreenResult {
   jobId: string;
@@ -30,7 +31,18 @@ export interface UseProcessingScreenResult {
 export function useProcessingScreen(jobId: string): UseProcessingScreenResult {
   const params = useLocalSearchParams<RouteParams>();
   const project = useMemo(() => parseAudioProjectParams(params), [params]);
-  const job = useProcessingJob(jobId);
+  const job = useProcessingJob(jobId, project);
+
+  // Fire-once-per-job enhancement_started, mirroring the terminal-status
+  // guard below — remounting the same job (navigate away and back) must not
+  // double-fire the start event.
+  useEffect(() => {
+    if (!job.snapshot || !project) return;
+    const attemptKey = `${jobId}:${job.snapshot.startedAt}`;
+    if (reportedStartAttempts.has(attemptKey)) return;
+    reportedStartAttempts.add(attemptKey);
+    track({ name: "enhancement_started", properties: { presetId: project.presetId ?? null } });
+  }, [job.snapshot, jobId, project]);
 
   const [notifyOptedIn, setNotifyOptedIn] = useState(false);
   const notificationPreferenceMutatedRef = useRef(false);
@@ -94,21 +106,21 @@ export function useProcessingScreen(jobId: string): UseProcessingScreenResult {
       reportedStatusRef.current = attemptKey;
       reportedTerminalAttempts.add(attemptKey);
       track({
-        name: "processing_completed",
+        name: "enhancement_completed",
         properties: { adapter: snapshot.adapter, elapsedSeconds: job.elapsedSeconds },
       });
     } else if (snapshot.status === "cancelled") {
       reportedStatusRef.current = attemptKey;
       reportedTerminalAttempts.add(attemptKey);
       track({
-        name: "processing_cancelled",
+        name: "enhancement_cancelled",
         properties: { stage: snapshot.stage, elapsedSeconds: job.elapsedSeconds },
       });
     } else if (snapshot.status === "failed") {
       reportedStatusRef.current = attemptKey;
       reportedTerminalAttempts.add(attemptKey);
       track({
-        name: "processing_failed",
+        name: "enhancement_failed",
         properties: {
           errorCode: snapshot.errorCode ?? "unexpected_error",
           elapsedSeconds: job.elapsedSeconds,

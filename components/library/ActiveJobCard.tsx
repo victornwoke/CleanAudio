@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   track: {
     height: 4,
     borderRadius: componentRadii.badge,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    backgroundColor: colors.onDarkPressed,
     overflow: "hidden",
   },
   highlight: {

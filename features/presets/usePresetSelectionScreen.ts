@@ -1,6 +1,8 @@
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
+import { Alert } from "react-native";
 
+import { track } from "@/lib/analytics/events";
 import { goToProcessing } from "@/features/audio/audioProjectNavigation";
 import { getPresetRecommendation } from "@/features/presets/presetRecommendation";
 import type { AudioProject, AudioProjectSource, MediaContainer } from "@/types/audio";
@@ -123,6 +125,7 @@ export function usePresetSelectionScreen() {
       setRecommendation(result);
       setSelectedId(result.source === "carried_over" ? result.presetId : "auto");
       setCompletedRecommendationKey(requestKey);
+      track({ name: "preset_recommended", properties: { presetId: result.presetId, source: result.source } });
     });
 
     return () => {
@@ -154,7 +157,21 @@ export function usePresetSelectionScreen() {
 
   function confirm(): void {
     if (!project || !effectivePresetId) return;
-    goToProcessing(project, effectivePresetId);
+    const presetId = effectivePresetId;
+    Alert.alert(
+      "Enhance securely in the cloud?",
+      "CleanAudio will upload this media to our processing provider to remove background noise. Your original stays unchanged.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Upload & Enhance",
+          onPress: () => {
+            track({ name: "preset_selected", properties: { presetId } });
+            goToProcessing(project, presetId);
+          },
+        },
+      ],
+    );
   }
 
   return {

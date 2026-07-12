@@ -85,9 +85,7 @@ export function useDemoPlayback(): DemoPlaybackState {
     activePlayer.play();
     if (!hasPlayedRef.current[activeTrack]) {
       hasPlayedRef.current[activeTrack] = true;
-      track({
-        name: activeTrack === "original" ? "demo_original_played" : "demo_enhanced_played",
-      });
+      track({ name: "demo_comparison_used", properties: { variant: activeTrack } });
       markDemoHeard().catch(() => {});
     }
   }, [activePlayer, otherPlayer, activeStatus.playing, activeTrack]);

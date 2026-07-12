@@ -15,6 +15,7 @@ import { createAuthNavigate, resolveReturnToHref } from "@/features/auth/navigat
 import { useAuthStatus } from "@/features/auth/useAuthStatus";
 import { useSocialSignIn } from "@/features/auth/useSocialSignIn";
 import { mapClerkError } from "@/lib/auth/mapClerkError";
+import { track } from "@/lib/analytics/events";
 
 type ScreenView = "sheet" | "password" | "forgot";
 
@@ -51,6 +52,7 @@ export default function SignInScreen() {
       return;
     }
     if (signIn.status === "complete") {
+      track({ name: "user_signed_in", properties: { method: "email" } });
       await signIn.finalize({ navigate: createAuthNavigate(returnTo ?? null) });
     } else if (signIn.status === "needs_second_factor") {
       setFormError(

@@ -8,7 +8,7 @@ import Animated, {
 
 import { colors } from "../../constants/colors";
 import { componentRadii } from "../../constants/radii";
-import { spacing } from "../../constants/spacing";
+import { layout, spacing } from "../../constants/spacing";
 import { useReducedMotion } from "../../hooks/useReducedMotion";
 import { AppText } from "./AppText";
 
@@ -113,6 +113,7 @@ const styles = StyleSheet.create({
   },
   segment: {
     flex: 1,
+    minHeight: layout.minTouchTarget,
     paddingVertical: spacing.xs,
     alignItems: "center",
     justifyContent: "center",

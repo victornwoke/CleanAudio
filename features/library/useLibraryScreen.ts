@@ -15,11 +15,9 @@ export interface LibraryUsage {
 }
 
 /**
- * Fetches the local project list. Backed by an in-memory placeholder fixture
- * today; the shape (async, throwable) matches what
- * `prompts/14-zustand-and-local-data.md`'s real local repository will
- * expose, so this hook's body won't need to change when that lands — only
- * this one function does.
+ * Fetches the local project list through the repository boundary. The
+ * current repository is memory-only, but it contains genuine user-created
+ * projects only and never seeds visual fixtures into the product.
  */
 export interface UseLibraryScreenResult {
   status: LibraryLoadStatus;

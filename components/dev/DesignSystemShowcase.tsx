@@ -4,6 +4,7 @@ import { View } from "react-native";
 import { colors, palette } from "../../constants/colors";
 import { radii } from "../../constants/radii";
 import { spacing } from "../../constants/spacing";
+import { captureMonitoringTestEvent, isSentryConfigured } from "../../lib/monitoring/sentry";
 import { AppButton } from "../common/AppButton";
 import { AppCard } from "../common/AppCard";
 import { AppIconButton } from "../common/AppIconButton";
@@ -174,6 +175,38 @@ export function DesignSystemShowcase() {
           onSecondaryAction={() => {}}
         />
       </Section>
+
+      <Section title="Monitoring">
+        <MonitoringDiagnostics />
+      </Section>
     </AppScreen>
+  );
+}
+
+/**
+ * Deliberate test-event trigger required by
+ * `prompts/19-sentry-monitoring.md` ("Verify with a deliberate test event in
+ * a non-production diagnostic path") — reachable only through this
+ * `__DEV__`-gated showcase, never a production surface.
+ */
+function MonitoringDiagnostics() {
+  const [status, setStatus] = useState<"idle" | "sent">("idle");
+  const configured = isSentryConfigured();
+
+  return (
+    <View style={{ gap: spacing.sm }}>
+      <AppText variant="caption" color="secondary">
+        Sentry {configured ? "is configured." : "is NOT configured — set EXPO_PUBLIC_SENTRY_DSN."}
+      </AppText>
+      <AppButton
+        label={status === "sent" ? "Test event sent — check Sentry" : "Send Sentry test event"}
+        variant="secondary"
+        disabled={!configured}
+        onPress={() => {
+          captureMonitoringTestEvent();
+          setStatus("sent");
+        }}
+      />
+    </View>
   );
 }

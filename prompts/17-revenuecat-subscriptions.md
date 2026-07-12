@@ -15,7 +15,6 @@
 7. Finish loading, empty, permission-denied, offline, cancelled, success, and failure states that apply to this task.
 8. Run the available lint, type-check, and relevant tests. Report what was changed and any genuine blockers.
 
-
 ## Objective
 
 Implement real RevenueCat subscriptions for Free, Pro, and Studio without fake pricing or local premium flags.
@@ -112,3 +111,8 @@ Track product/package IDs and outcomes, not payment details. Sentry errors must 
 - Prices are never hardcoded.
 - Purchase and restore are tested in sandbox.
 - Successful purchase returns the user to the action that triggered the paywall.
+- Restore purchases work from previous sessions.
+- All entitlement states (free, pro, studio) render correctly in the paywall UI.
+- Customer info updates trigger UI refreshes without manual reload.
+- Error states display appropriate user-facing messages for all failure scenarios.
+- Navigation back to previous screen works after dismissing paywall.

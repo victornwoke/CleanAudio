@@ -88,6 +88,9 @@ export const colors = {
   processingTextSecondary: "#9AA0BE",
 
   overlay: "rgba(17, 20, 38, 0.48)",
+  onDarkPressed: "rgba(255, 255, 255, 0.12)",
+  onDarkBorder: "rgba(255, 255, 255, 0.24)",
+  onDarkSubtle: "rgba(255, 255, 255, 0.08)",
   shadowColor: palette.ink900,
 
   waveformBefore: palette.ink300,
@@ -139,6 +142,9 @@ export const darkColors: Record<keyof typeof colors, string> = {
   processingTextSecondary: "#9AA0BE",
 
   overlay: "rgba(0, 0, 0, 0.6)",
+  onDarkPressed: "rgba(255, 255, 255, 0.12)",
+  onDarkBorder: "rgba(255, 255, 255, 0.24)",
+  onDarkSubtle: "rgba(255, 255, 255, 0.08)",
   shadowColor: palette.black,
 
   waveformBefore: "#565D82",

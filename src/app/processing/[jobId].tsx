@@ -7,6 +7,7 @@ import { AppButton } from "@/components/common/AppButton";
 import { AppScreen } from "@/components/common/AppScreen";
 import { AppText } from "@/components/common/AppText";
 import { ErrorState } from "@/components/common/ErrorState";
+import { PermissionPrimer } from "@/components/notifications/PermissionPrimer";
 import { ProcessingRing } from "@/components/processing/ProcessingRing";
 import { StageList } from "@/components/processing/StageList";
 import { colors } from "@/constants/colors";
@@ -20,15 +21,9 @@ import { useRequiredParam } from "@/hooks/useRequiredParam";
 import { PROCESSING_STAGE_LABELS } from "@/types/processing";
 
 /**
- * Real trustworthy-progress screen (`prompts/09-processing-screen.md`,
- * `07-processing.png`). The only implementation of `ProcessingJobAdapter`
- * today is `developmentMockProcessingAdapter` — a clearly-labelled,
- * explicitly documented prototype (`AGENTS.md` §4) standing in for the real
- * native/cloud adapters `prompts/15-audio-domain-and-adapters.md` will add.
- * It simulates genuine stage *transitions*, never a bare timer that jumps to
- * completion, and every produced snapshot is tagged
- * `adapter: "development-mock"` so nothing downstream can present it as a
- * real enhanced output (`CLAUDE.md` §8). Guest-accessible per `AGENTS.md` §8.
+ * Trustworthy cloud-processing screen. The job reports indeterminate
+ * progress while ElevenLabs processes the upload and only completes after a
+ * non-empty enhanced file has been written to app-owned storage.
  */
 export default function ProcessingScreen() {
   const { jobId } = useLocalSearchParams<{ jobId: string }>();
@@ -171,18 +166,7 @@ function ResolvedProcessingScreen({ jobId }: { jobId: string }) {
       </AppText>
 
       <View style={styles.actions}>
-        <AppButton
-          label={notifyOptedIn ? "We'll notify you when it's ready" : "Notify me when complete"}
-          icon={iconNames.notifications}
-          variant="outlineOnDark"
-          onPress={toggleNotifyOptIn}
-          disabled={notifyOptedIn}
-          accessibilityLabel={
-            notifyOptedIn
-              ? "You will be notified when this enhancement is ready"
-              : "Notify me when this enhancement is complete"
-          }
-        />
+        <PermissionPrimer optedIn={notifyOptedIn} onAccept={toggleNotifyOptIn} onDark />
         <AppButton
           label={isCancelling ? "Cancelling…" : "Cancel"}
           variant="outlineOnDark"

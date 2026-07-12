@@ -41,27 +41,29 @@ export function ErrorState({
 }: ErrorStateProps) {
   return (
     <View style={styles.container}>
-      <View style={styles.iconCircle}>
-        <Ionicons name={icon} size={28} color={colors.error} />
-      </View>
-      <AppText
-        variant="heading"
-        color={onDark ? "onDark" : "primary"}
-        align="center"
-        style={styles.title}
-      >
-        {title}
-      </AppText>
-      {description ? (
+      <View accessible accessibilityRole="alert" accessibilityLabel={[title, description].filter(Boolean).join(". ")} style={styles.summary}>
+        <View style={styles.iconCircle}>
+          <Ionicons name={icon} size={28} color={colors.error} />
+        </View>
         <AppText
-          variant="body"
-          color={onDark ? "onDark" : "secondary"}
+          variant="heading"
+          color={onDark ? "onDark" : "primary"}
           align="center"
-          style={onDark && styles.descriptionOnDark}
+          style={styles.title}
         >
-          {description}
+          {title}
         </AppText>
-      ) : null}
+        {description ? (
+          <AppText
+            variant="body"
+            color={onDark ? "onDark" : "secondary"}
+            align="center"
+            style={onDark && styles.descriptionOnDark}
+          >
+            {description}
+          </AppText>
+        ) : null}
+      </View>
       <View style={styles.actions}>
         {recoverable && onRetry ? (
           <AppButton label={retryLabel} variant="primary" onPress={onRetry} fullWidth={false} />
@@ -85,6 +87,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: spacing.xxl,
     paddingHorizontal: spacing.lg,
+  },
+  summary: {
+    alignItems: "center",
   },
   iconCircle: {
     width: 64,

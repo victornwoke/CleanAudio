@@ -15,6 +15,7 @@ function getAudioProjectRouteParams(project: AudioProject) {
     sizeBytes: String(project.sizeBytes),
     createdAt: project.createdAt,
     needsAudioExtraction: project.needsAudioExtraction ? "1" : "0",
+    presetId: project.presetId ?? "",
   };
 }
 
@@ -55,8 +56,8 @@ export function goToProcessing(project: AudioProject, presetId: PresetId): void 
     params: {
       jobId: project.id,
       projectId: project.id,
-      presetId,
       ...getAudioProjectRouteParams(project),
+      presetId,
     },
   });
 }

@@ -25,17 +25,19 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <View style={styles.container}>
-      <View style={styles.iconCircle}>
-        <Ionicons name={icon} size={28} color={colors.textSecondary} />
-      </View>
-      <AppText variant="heading" align="center" style={styles.title}>
-        {title}
-      </AppText>
-      {description ? (
-        <AppText variant="body" color="secondary" align="center">
-          {description}
+      <View accessible accessibilityRole="summary" accessibilityLabel={[title, description].filter(Boolean).join(". ")} style={styles.summary}>
+        <View style={styles.iconCircle}>
+          <Ionicons name={icon} size={28} color={colors.textSecondary} />
+        </View>
+        <AppText variant="heading" align="center" style={styles.title}>
+          {title}
         </AppText>
-      ) : null}
+        {description ? (
+          <AppText variant="body" color="secondary" align="center">
+            {description}
+          </AppText>
+        ) : null}
+      </View>
       {actionLabel && onAction ? (
         <View style={styles.action}>
           <AppButton label={actionLabel} variant="secondary" onPress={onAction} fullWidth={false} />
@@ -51,6 +53,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: spacing.xxl,
     paddingHorizontal: spacing.lg,
+  },
+  summary: {
+    alignItems: "center",
   },
   iconCircle: {
     width: 64,

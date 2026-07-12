@@ -160,6 +160,7 @@ export function useExportScreen(project: AudioProject): UseExportScreenResult {
 
   function startExport(): void {
     if (!enhancedResult || job?.status === "exporting") return;
+    track({ name: "export_started", properties: { format: settings.format } });
     unsubscribeRef.current?.();
     unsubscribeRef.current = developmentMockExportAdapter.start(
       {

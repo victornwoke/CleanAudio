@@ -1,4 +1,3 @@
-import { SAMPLE_LIBRARY_PROJECTS } from "@/features/library/sampleLibraryData";
 import type { AudioProject } from "@/types/audio";
 import type { ExportJobSnapshot, ExportSettings } from "@/types/export";
 import type { EnhancementVersion, ExportVersion, OriginalVersion, ProjectHistory } from "@/types/history";
@@ -70,6 +69,10 @@ export function createInMemoryLocalRepositories(seed: readonly LibraryProject[] 
         const current = histories.get(projectId);
         if (current) histories.set(projectId, { ...current, enhancements: [...current.enhancements, version] });
       },
+      async removeEnhancement(projectId, versionId) {
+        const current = histories.get(projectId);
+        if (current) histories.set(projectId, { ...current, enhancements: current.enhancements.filter((item) => item.id !== versionId) });
+      },
     },
     jobs: {
       async listReferences() { return [...jobs.values()]; },
@@ -95,6 +98,8 @@ export function createInMemoryLocalRepositories(seed: readonly LibraryProject[] 
         mediaFiles.set(record.id, record);
         return { ...record };
       },
+      async registerGenerated(record) { mediaFiles.set(record.id, { ...record }); },
+      async remove(recordId) { mediaFiles.delete(recordId); },
       async listForProject(projectId) { return [...mediaFiles.values()].filter((item) => item.projectId === projectId); },
       async cleanupTemporary(projectId) {
         for (const [id, item] of mediaFiles) if (item.projectId === projectId && item.ownership === "temporary") mediaFiles.delete(id);
@@ -127,5 +132,6 @@ export function createInMemoryLocalRepositories(seed: readonly LibraryProject[] 
   };
 }
 
-// Development catalog seed preserves the existing UI until real SQLite lands.
-export const localRepositories = createInMemoryLocalRepositories(SAMPLE_LIBRARY_PROJECTS);
+// Production and development both start from genuine user-created data.
+// Visual fixtures belong in isolated component tests/showcases, never in the
+// interactive library or history where they can be mistaken for real work.
