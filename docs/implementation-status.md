@@ -40,9 +40,17 @@ Status values: `not-started` | `in-progress` | `blocked` | `verified`. Updated b
 | Sentry monitoring (`prompts/19`) | in-progress | `@sentry/react-native` installed and configured once at module scope in the root layout; privacy scrubbing, the app-root error boundary, Expo Router navigation instrumentation, and a dev-only diagnostic test event are wired end-to-end. Not yet `verified` — no native rebuild has been performed in this pass (a `expo start --dev-client` session was already active; see notes below) and no real event has been observed landing in the Sentry dashboard. See notes below. |
 | PostHog analytics (`prompts/20`) | in-progress | `posthog-react-native` installed and configured once at the root layout; anonymous-then-identified identity, safe person properties, the full typed "Core events" taxonomy, screen tracking, and a dev-time forbidden-property guard are wired end-to-end. Not yet `verified` — no real event has been observed landing in the PostHog dashboard and no on-device tap-automation is available in this sandbox. See notes below. |
 | Settings / privacy / help (`prompts/21`) | in-progress | Real Settings/Help screens replace the `prompts/03` placeholders and are visually verified against `12-settings.png`'s structure/tokens. Account, subscription, notifications, defaults, storage, privacy, and help are all wired to real state — no fabricated quota/usage numbers. Not yet `verified` — no on-device tap-automation is available in this sandbox and a `window is not defined` crash in this Expo SDK's web static-rendering path (pre-existing, reproduced on the untouched `/` route too) blocked a Playwright pass. See notes below. |
-| Testing, accessibility, performance (`prompts/22`) | not-started | No test runner installed; see foundation note above. |
+| Testing, accessibility, performance (`prompts/22`) | in-progress | Deterministic CI/test contracts and P0 semantic fixes are implemented. Physical-device accessibility, performance, purchase, push, and release-symbolication checks remain release blockers; see notes below. |
 | Production audit & release (`prompts/23`) | not-started | |
 | Figma handoff & visual polish (`prompts/24`) | not-started | |
+
+## `prompts/22-testing-accessibility-performance.md` — verification notes (2026-07-12)
+
+- Added GitHub Actions CI for `npm ci`, strict type-check, Expo lint, and deterministic tests. The Node test suite now covers quota/entitlement decisions, export-option gating, deep-link payload rejection, analytics privacy, Sentry scrubbing, media error mapping, job transitions, state migration, audio routing, backend ownership/idempotency, and shared P0 accessibility contracts.
+- Fixed two P0 accessibility issues without changing visual styling: segmented-control tabs now enforce the shared 44-point minimum touch target; shared empty/error states expose a grouped summary/alert while leaving recovery buttons as separate accessible controls.
+- Added `docs/performance-baseline.md` with the required device/build/media/adapter measurement schema. No physical release device or real native/cloud enhancement adapter was available, so PRD performance targets are deliberately not claimed. Cold start, waveform, processing, A/B, export, long-file memory, VoiceOver/TalkBack, RevenueCat sandbox, real push, and Sentry release symbolication remain physical-device release blockers.
+- Prompt 22 names no visual references and changes no screen styling; there were no PNGs to open or compare for this task.
+- Verified locally: `npm test` passes 34/34 deterministic tests; `npm run typecheck` passes; `npm run lint` passes after removing a duplicate import warning; `npx expo-doctor` and the aggregate `npm run verify` are recorded in the completion report.
 
 ## Known blockers
 

@@ -69,7 +69,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test": "tsc --ignoreConfig services/audio/enhancementRoutingPolicy.ts types/audioDomainError.ts lib/monitoring/scrubEvent.ts lib/analytics/properties.ts --outDir .test-build --module node16 --moduleResolution node16 --target es2022 --skipLibCheck && tsc --ignoreConfig services/api/InMemorySecureBackend.ts services/api/CloudBackend.ts services/api/signedTransfer.ts types/cloud.ts lib/notifications/jobCompletionPayload.ts --outDir /tmp/cleanaudio-cloud-tests --module node16 --moduleResolution node16 --target es2022 --skipLibCheck && node --test services/audio/*.test.cjs services/api/*.test.cjs lib/monitoring/*.test.cjs lib/analytics/*.test.cjs",
+    "test": "tsc --ignoreConfig services/audio/enhancementRoutingPolicy.ts types/audioDomainError.ts lib/monitoring/scrubEvent.ts lib/analytics/properties.ts features/subscriptions/accessDecision.ts features/export/exportOptionGate.ts services/media/mediaErrorMapping.ts features/processing/jobTransitions.ts store/migratePersistedState.ts lib/notifications/jobCompletionPayload.ts --outDir .test-build --module node16 --moduleResolution node16 --target es2022 --skipLibCheck && tsc --ignoreConfig services/api/InMemorySecureBackend.ts services/api/CloudBackend.ts services/api/signedTransfer.ts types/cloud.ts lib/notifications/jobCompletionPayload.ts --outDir /tmp/cleanaudio-cloud-tests --module node16 --moduleResolution node16 --target es2022 --skipLibCheck && node --test tests/*.test.cjs services/audio/*.test.cjs services/api/*.test.cjs lib/monitoring/*.test.cjs lib/analytics/*.test.cjs",
     "verify": "npm run typecheck && npm run lint && npx expo-doctor && npm run test"
   },
   "private": true,
