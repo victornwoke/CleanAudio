@@ -31,7 +31,7 @@ export interface UseProcessingScreenResult {
 export function useProcessingScreen(jobId: string): UseProcessingScreenResult {
   const params = useLocalSearchParams<RouteParams>();
   const project = useMemo(() => parseAudioProjectParams(params), [params]);
-  const job = useProcessingJob(jobId);
+  const job = useProcessingJob(jobId, project);
 
   // Fire-once-per-job enhancement_started, mirroring the terminal-status
   // guard below — remounting the same job (navigate away and back) must not

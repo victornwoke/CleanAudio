@@ -56,6 +56,7 @@ export interface ExportRepository {
 
 export interface MediaFileRepository {
   registerOriginal(project: AudioProject): Promise<MediaFileRecord>;
+  registerGenerated(record: MediaFileRecord): Promise<void>;
   listForProject(projectId: string): Promise<MediaFileRecord[]>;
   cleanupTemporary(projectId: string): Promise<void>;
   deleteOwnedFiles(projectId: string): Promise<void>;

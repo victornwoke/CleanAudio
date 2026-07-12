@@ -28,7 +28,7 @@ export interface UseImportScreenResult {
 
 export interface UseImportScreenParams {
   /** Called once a candidate file has been validated into an `AudioProject`. */
-  onImported: (project: AudioProject) => void;
+  onImported: (project: AudioProject) => void | Promise<void>;
 }
 
 /**
@@ -103,7 +103,7 @@ export function useImportScreen({ onImported }: UseImportScreenParams): UseImpor
           properties: { mediaType: project.mediaType, durationSeconds: project.durationSeconds },
         });
         setStatus("idle");
-        onImported(project);
+        await onImported(project);
       } catch (error) {
         handleValidationError(error);
       }

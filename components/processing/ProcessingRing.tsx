@@ -25,7 +25,7 @@ export interface ProcessingRingProps {
   strokeWidth?: number;
 }
 
-const TRACK_COLOR = "rgba(255,255,255,0.08)";
+const TRACK_COLOR = colors.onDarkSubtle;
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 /**

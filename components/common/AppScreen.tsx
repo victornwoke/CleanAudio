@@ -53,6 +53,9 @@ export function AppScreen({
         contentContainerStyle,
       ]}
       keyboardShouldPersistTaps="handled"
+      automaticallyAdjustKeyboardInsets={keyboardSafe}
+      contentInsetAdjustmentBehavior="automatic"
+      showsVerticalScrollIndicator={false}
     >
       {children}
     </ScrollView>

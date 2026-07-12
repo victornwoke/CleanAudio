@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     width: MARKER_SIZE,
     height: MARKER_SIZE,
     borderRadius: MARKER_SIZE / 2,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: colors.onDarkSubtle,
   },
   doneText: {
     color: colors.success,

@@ -20,6 +20,7 @@ import { colors } from "@/constants/colors";
 import { iconNames } from "@/constants/images";
 import { spacing } from "@/constants/spacing";
 import { goToPresetSelection } from "@/features/audio/audioProjectNavigation";
+import { registerAudioProject } from "@/features/library/registerAudioProject";
 import { useRecordScreen } from "@/features/record/useRecordScreen";
 
 /**
@@ -38,7 +39,9 @@ export default function RecordScreen() {
   const handleFinish = useCallback(async () => {
     const project = await record.stop();
     if (!project) return;
-    goToPresetSelection(selectedPreset === "auto" ? project : { ...project, presetId: selectedPreset });
+    const registered = selectedPreset === "auto" ? project : { ...project, presetId: selectedPreset };
+    await registerAudioProject(registered);
+    goToPresetSelection(registered);
   }, [record, selectedPreset]);
 
   const handleClose = useCallback(() => {

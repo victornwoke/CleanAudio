@@ -14,6 +14,7 @@ import { iconNames } from "@/constants/images";
 import { spacing } from "@/constants/spacing";
 import { goToPresetSelection } from "@/features/audio/audioProjectNavigation";
 import { useImportScreen } from "@/features/import/useImportScreen";
+import { registerAudioProject } from "@/features/library/registerAudioProject";
 import { SUPPORTED_FORMATS_LABEL } from "@/services/media/mediaFormats";
 import type { AudioProject } from "@/types/audio";
 import type { PresetId } from "@/types/onboarding";
@@ -34,9 +35,11 @@ export default function ImportScreen() {
   const { presetId: requestedPresetId } = useLocalSearchParams<{ presetId?: string }>();
 
   const handleImported = useCallback(
-    (project: AudioProject) => {
+    async (project: AudioProject) => {
       const presetId = VALID_PRESET_IDS.find((id) => id === requestedPresetId);
-      goToPresetSelection(presetId ? { ...project, presetId } : project);
+      const registered = presetId ? { ...project, presetId } : project;
+      await registerAudioProject(registered);
+      goToPresetSelection(registered);
     },
     [requestedPresetId],
   );

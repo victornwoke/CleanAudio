@@ -1,5 +1,6 @@
 import type { AudioProject, AudioProjectSource, MediaContainer } from "@/types/audio";
 import type { MediaType } from "@/types/library";
+import type { PresetId } from "@/types/onboarding";
 
 const VALID_MEDIA_TYPES: readonly MediaType[] = ["audio", "video"];
 const VALID_SOURCES: readonly AudioProjectSource[] = ["recorded", "imported"];
@@ -13,6 +14,7 @@ const VALID_CONTAINERS: readonly MediaContainer[] = [
   "mp4",
   "mov",
 ];
+const VALID_PRESETS: readonly PresetId[] = ["podcast", "social_clip", "field_interview", "classroom_lecture", "call_meeting"];
 
 export interface AudioProjectRouteParams {
   [key: string]: string | string[];
@@ -26,6 +28,7 @@ export interface AudioProjectRouteParams {
   sizeBytes: string;
   createdAt: string;
   needsAudioExtraction: string;
+  presetId: string;
 }
 
 /**
@@ -49,6 +52,7 @@ export function parseAudioProjectParams(params: AudioProjectRouteParams): AudioP
     sizeBytes,
     createdAt,
     needsAudioExtraction,
+    presetId,
   } = params;
 
   if (
@@ -96,5 +100,6 @@ export function parseAudioProjectParams(params: AudioProjectRouteParams): AudioP
     sizeBytes: sizeBytesNum,
     createdAt,
     needsAudioExtraction: needsAudioExtraction === "1",
+    presetId: typeof presetId === "string" ? VALID_PRESETS.find((id) => id === presetId) : undefined,
   };
 }

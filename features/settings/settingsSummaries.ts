@@ -18,7 +18,7 @@ export function sumLocalStorageBytes(projects: readonly LibraryProject[]): numbe
 export function sumEnhancedMinutes(projects: readonly LibraryProject[]): number {
   const seconds = projects
     .filter((project) => project.processingState === "processed")
-    .reduce((total, project) => total + project.durationSeconds, 0);
+    .reduce((total, project) => total + (project.durationSeconds ?? 0), 0);
   return Math.round((seconds / 60) * 10) / 10;
 }
 

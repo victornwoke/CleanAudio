@@ -34,7 +34,7 @@ export interface LibraryProject {
   displayName: string;
   mediaType: MediaType;
   /** Total duration in seconds. */
-  durationSeconds: number;
+  durationSeconds: number | null;
   createdAt: string;
   processingState: ProcessingState;
   syncState: SyncState;

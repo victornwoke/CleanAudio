@@ -73,9 +73,9 @@ const variantStyles: Record<
   },
   outlineOnDark: {
     background: "transparent",
-    pressedBackground: "rgba(255,255,255,0.12)",
+    pressedBackground: colors.onDarkPressed,
     text: "onDark",
-    border: "rgba(255,255,255,0.24)",
+    border: colors.onDarkBorder,
   },
 };
 

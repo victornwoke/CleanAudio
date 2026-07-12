@@ -14,6 +14,9 @@ Versions are from `package.json` on 2026-07-12.
 | Expo File System / Sharing | `~57.0.0` / `~57.0.3` | app-owned media/export files and share handoff | Local import/export seams. Real transcoding and release-device share testing absent. |
 | AsyncStorage | `2.2.0` | non-sensitive preferences/light metadata | Used behind persistence boundaries; must never hold tokens/raw media/entitlement authority. |
 | SecureStore | `~57.0.0` | secure token storage through owning auth integration | Native rebuild required; release keychain behaviour unverified. |
+| Expo SQLite | `~57.0.0` | durable local project/history/job/export/media metadata | Repository boundary now uses a WAL-mode SQLite database; native rebuild and migration/device testing required. |
+| Clerk Backend | current npm dependency | verifies Clerk session tokens on the server enhancement route | Requires server-only `CLERK_SECRET_KEY` plus `CLERK_PUBLISHABLE_KEY`; not part of the client bundle. |
+| ElevenLabs Voice Isolator | HTTPS API | real speech/background-noise isolation for explicitly uploaded media | Proxied only through authenticated `/api/enhance`; requires revoked/replaced server-only key and real quality/retention testing before release. |
 
 ## Dashboard and release obligations
 

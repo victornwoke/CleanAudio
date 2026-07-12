@@ -1,37 +1,184 @@
+import { useAuth } from "@clerk/expo";
 import { useEffect, useState } from "react";
 import { AppState } from "react-native";
 
-import { audioProcessingJobAdapter } from "@/services/audio/processingJobAdapter";
-import type { ProcessingJobSnapshot } from "@/types/processing";
+import { storeEnhancedAudioResult } from "@/features/review/enhancedAudioResult";
+import { getPresetDefinition } from "@/features/presets/presetCatalog";
+import { enhanceWithCloud } from "@/services/audio/elevenLabsEnhancementClient";
+import { localRepositories } from "@/services/repositories";
+import { useProjectStore } from "@/store/useProjectStore";
+import type { AudioProject } from "@/types/audio";
+import { AudioDomainError } from "@/types/audioDomainError";
+import type { ProcessingErrorCode, ProcessingJobSnapshot } from "@/types/processing";
 
-const adapter = audioProcessingJobAdapter;
+type TokenProvider = () => Promise<string | null>;
+type Listener = (snapshot: ProcessingJobSnapshot) => void;
+
+interface CloudJobRecord {
+  snapshot: ProcessingJobSnapshot;
+  project: AudioProject;
+  getToken: TokenProvider;
+  controller: AbortController;
+  listeners: Set<Listener>;
+}
+
+const jobs = new Map<string, CloudJobRecord>();
+
+function emit(record: CloudJobRecord, snapshot: ProcessingJobSnapshot): void {
+  record.snapshot = snapshot;
+  record.listeners.forEach((listener) => listener(snapshot));
+}
+
+function toProcessingError(error: unknown): ProcessingErrorCode {
+  if (error instanceof AudioDomainError) {
+    const supported: readonly ProcessingErrorCode[] = [
+      "authentication_required",
+      "corrupt_media",
+      "file_too_large",
+      "insufficient_storage",
+      "offline",
+      "processing_failed",
+      "quota_exceeded",
+      "sdk_unavailable",
+      "unsupported_format",
+      "unexpected_error",
+    ];
+    return supported.find((code) => code === error.code) ?? "unexpected_error";
+  }
+  return "unexpected_error";
+}
+
+async function execute(jobId: string, record: CloudJobRecord): Promise<void> {
+  const running: ProcessingJobSnapshot = {
+    jobId,
+    status: "processing",
+    stage: "removing_noise",
+    progress: null,
+    estimatedRemainingSeconds: null,
+    startedAt: record.snapshot.startedAt,
+    adapter: "cloud",
+  };
+  emit(record, running);
+
+  try {
+    const token = await record.getToken();
+    if (!token) throw new AudioDomainError("authentication_required", "Authentication is required.");
+    const result = await enhanceWithCloud(record.project, token, record.controller.signal);
+    storeEnhancedAudioResult(record.project.id, {
+      uri: result.uri,
+      adapter: "cloud",
+      durationSeconds: record.project.durationSeconds,
+    });
+    const completedAt = new Date().toISOString();
+    const versionId = `${record.project.id}_enhancement_${Date.now()}`;
+    await localRepositories.mediaFiles.registerGenerated({
+      id: `${versionId}_media`,
+      projectId: record.project.id,
+      versionId,
+      uri: result.uri,
+      ownership: "generated",
+      sizeBytes: result.sizeBytes,
+      createdAt: completedAt,
+    });
+    if (record.project.presetId) {
+      const preset = getPresetDefinition(record.project.presetId);
+      await localRepositories.versions.addEnhancement(record.project.id, {
+        id: versionId,
+        kind: "enhancement",
+        sourceVersionId: `${record.project.id}_original`,
+        createdAt: completedAt,
+        status: "completed",
+        presetId: preset.id,
+        presetLabel: preset.displayName,
+        adapter: "cloud",
+        modelVersion: "elevenlabs-voice-isolator",
+      });
+      const libraryProject = await localRepositories.projects.get(record.project.id);
+      if (libraryProject) {
+        await useProjectStore.getState().upsert({
+          ...libraryProject,
+          processingState: "processed",
+          adapterUsed: "cloud",
+          presetId: preset.id,
+          presetLabel: preset.displayName,
+          processingProgress: undefined,
+        });
+      }
+    }
+    emit(record, {
+      ...running,
+      status: "completed",
+      stage: "finalizing",
+      progress: 1,
+    });
+  } catch (error) {
+    if (record.controller.signal.aborted) {
+      emit(record, {
+        ...running,
+        status: "cancelled",
+        stage: null,
+        progress: null,
+      });
+      return;
+    }
+    emit(record, {
+      ...running,
+      status: "failed",
+      stage: null,
+      progress: null,
+      errorCode: toProcessingError(error),
+    });
+  }
+}
+
+function createJob(jobId: string, project: AudioProject, getToken: TokenProvider): CloudJobRecord {
+  const record: CloudJobRecord = {
+    snapshot: {
+      jobId,
+      status: "preparing",
+      stage: "preparing",
+      progress: null,
+      estimatedRemainingSeconds: null,
+      startedAt: Date.now(),
+      adapter: "cloud",
+    },
+    project,
+    getToken,
+    controller: new AbortController(),
+    listeners: new Set(),
+  };
+  jobs.set(jobId, record);
+  void execute(jobId, record);
+  return record;
+}
 
 export interface UseProcessingJobResult {
   snapshot: ProcessingJobSnapshot | null;
-  /** Real wall-clock seconds since the job started, derived from the
-   * adapter's own `startedAt` — stays correct across remounts instead of
-   * resetting a local timer every time the screen is (re)opened. */
   elapsedSeconds: number;
   cancel: () => void;
   retry: () => void;
 }
 
 /**
- * Subscribes to a processing job's progress (`prompts/09-processing-screen.md`
- * Job behaviour: resolve by ID, subscribe to bounded status updates, handle
- * background/foreground, idempotent retry). Only one adapter exists today
- * (`developmentMockProcessingAdapter`) — swapping in the real native/cloud
- * adapters from `prompts/15-audio-domain-and-adapters.md` only changes the
- * import above.
+ * Runs a genuine authenticated cloud enhancement. The registry survives
+ * route unmount/remount within the app process, so leaving the screen does
+ * not duplicate or cancel a job. Progress remains indeterminate because the
+ * provider does not expose measurable sub-stage progress.
  */
-export function useProcessingJob(jobId: string): UseProcessingJobResult {
+export function useProcessingJob(jobId: string, project: AudioProject | null): UseProcessingJobResult {
+  const { getToken } = useAuth();
   const [snapshot, setSnapshot] = useState<ProcessingJobSnapshot | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    const unsubscribe = adapter.subscribe(jobId, setSnapshot);
-    return unsubscribe;
-  }, [jobId]);
+    if (!project) return;
+    const record = jobs.get(jobId) ?? createJob(jobId, project, getToken);
+    record.listeners.add(setSnapshot);
+    setSnapshot(record.snapshot);
+    return () => {
+      record.listeners.delete(setSnapshot);
+    };
+  }, [getToken, jobId, project]);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
@@ -39,20 +186,32 @@ export function useProcessingJob(jobId: string): UseProcessingJobResult {
   }, []);
 
   useEffect(() => {
-    // Backgrounding can throttle JS timers; resync the displayed elapsed
-    // time from real wall-clock as soon as the app is foregrounded again
-    // rather than trusting a stale interval tick (Job behaviour: "handle
-    // app background/foreground").
     const subscription = AppState.addEventListener("change", (nextState) => {
       if (nextState === "active") setNow(Date.now());
     });
     return () => subscription.remove();
   }, []);
 
+  function cancel(): void {
+    const record = jobs.get(jobId);
+    if (!record || (record.snapshot.status !== "preparing" && record.snapshot.status !== "processing")) return;
+    emit(record, { ...record.snapshot, status: "cancel_requested" });
+    record.controller.abort();
+  }
+
+  function retry(): void {
+    const record = jobs.get(jobId);
+    if (!project || (record && record.snapshot.status !== "failed" && record.snapshot.status !== "cancelled")) return;
+    jobs.delete(jobId);
+    const next = createJob(jobId, project, getToken);
+    next.listeners.add(setSnapshot);
+    setSnapshot(next.snapshot);
+  }
+
   return {
     snapshot,
     elapsedSeconds: snapshot ? Math.max(0, Math.floor((now - snapshot.startedAt) / 1000)) : 0,
-    cancel: () => adapter.cancel(jobId),
-    retry: () => adapter.retry(jobId),
+    cancel,
+    retry,
   };
 }

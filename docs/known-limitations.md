@@ -4,7 +4,8 @@ These limitations are release blockers unless explicitly marked as post-MVP.
 
 ## Core product
 
-- No production native or cloud audio-enhancement adapter is implemented. User media cannot receive the promised denoise/dereverb/EQ/dynamics/LUFS pipeline.
+- A genuine authenticated ElevenLabs Voice Isolator cloud path is deployed at `https://cleanaudio.expo.app` and passed the controlled provider test in `docs/audio-validation.md` (54.29 dB lower measured noise floor while speech-region energy remained present). The deployed route's unauthenticated 401 boundary is verified; a signed-in mobile end-to-end upload still needs device walkthrough evidence. It does not yet implement the PRD's separate dereverb, EQ, dynamics, or standards-measured LUFS mastering stages.
+- Development no longer seeds illustrative projects/history or contains the timed mock processing adapter. Until the server is deployed and configured, processing fails closed rather than simulating success.
 - Current export support is a truthful, limited same-container copy of an already-enhanced source; there is no production encoder, format conversion, bitrate selection, or loudness mastering.
 - Bundled demo clips are synthetic placeholders, not an approved real before/after marketing example.
 - Preset recommendation is not backed by real audio classification, and fine-tune controls cannot affect a genuine processing engine.
@@ -12,7 +13,7 @@ These limitations are release blockers unless explicitly marked as post-MVP.
 
 ## Data and backend
 
-- Project/version/job repositories are in-memory; app restarts do not provide production-grade durable library behaviour.
+- Project, version, job-reference, export-draft, media-reference, and sync-queue metadata now use `expo-sqlite`. Migration/device stress testing and cloud reconciliation remain required.
 - Cloud API, storage, worker queue, entitlement verification, usage ledger, and sync are contracts/reference implementations, not a deployed service.
 - Cloud project deletion can only report partial completion. Account deletion and GDPR data export report backend unavailable.
 - Authoritative plan quota/storage usage is unavailable; the UI intentionally avoids invented values.

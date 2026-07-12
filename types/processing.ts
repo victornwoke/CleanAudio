@@ -54,7 +54,17 @@ export type ProcessingJobStatus =
   | "failed";
 
 /** Subset of `AGENTS.md` §15's typed error codes relevant to a processing job. */
-export type ProcessingErrorCode = "processing_failed" | "sdk_unavailable" | "unexpected_error";
+export type ProcessingErrorCode =
+  | "authentication_required"
+  | "corrupt_media"
+  | "file_too_large"
+  | "insufficient_storage"
+  | "offline"
+  | "processing_failed"
+  | "quota_exceeded"
+  | "sdk_unavailable"
+  | "unsupported_format"
+  | "unexpected_error";
 
 export interface ProcessingJobSnapshot {
   jobId: string;
