@@ -6,8 +6,8 @@ import { loginRevenueCatUser, logoutRevenueCatUser } from "@/lib/purchases/reven
 /**
  * Cross-service identity boundary (AGENTS.md §8, prompts/05 "Identity
  * synchronization"). All four SDKs (RevenueCat, OneSignal, Sentry, PostHog)
- * are now wired for real. Order matters: purchase/entitlement state first,
- * then messaging, then analytics, then error context.
+ * are now wired for real. SDK identity updates are independent and RevenueCat
+ * failures are contained so they cannot block the other integrations.
  */
 
 export function identifyThirdPartyServices(clerkUserId: string): void {
@@ -22,7 +22,7 @@ export function identifyThirdPartyServices(clerkUserId: string): void {
   setSentryUserId(clerkUserId);
 }
 
-/** Order matters: entitlement/purchase state first, then messaging, then analytics, then error context. */
+/** Detaches every integration independently so one SDK cannot block sign-out cleanup. */
 export function detachThirdPartyServices(): void {
   if (__DEV__) {
     console.log("[identity] detach");

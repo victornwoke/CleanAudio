@@ -111,9 +111,9 @@ export function configureSentryOnce(): void {
       release: buildRelease(),
       tracesSampleRate: TRACES_SAMPLE_RATE,
       integrations: [navigationIntegration],
-      beforeBreadcrumb: scrubBreadcrumbForSentry,
-      beforeSend: scrubEventForSentry,
-      beforeSendTransaction: scrubEventForSentry,
+      beforeBreadcrumb: (breadcrumb) => isDiagnosticSharingEnabled() ? scrubBreadcrumbForSentry(breadcrumb) : null,
+      beforeSend: (event) => isDiagnosticSharingEnabled() ? scrubEventForSentry(event) : null,
+      beforeSendTransaction: (event) => isDiagnosticSharingEnabled() ? scrubEventForSentry(event) : null,
     });
     configured = true;
   } catch (error) {
@@ -180,7 +180,8 @@ const EXPECTED_ERROR_CODES = new Set([
  * current than trying to conditionally re-init the SDK.
  */
 function isDiagnosticSharingEnabled(): boolean {
-  return usePreferencesStore.getState().diagnosticSharingEnabled;
+  const preferences = usePreferencesStore.getState();
+  return preferences.hasHydrated && preferences.diagnosticSharingEnabled;
 }
 
 function buildSafeContext(context: SafeMonitoringContext): Record<string, string> {

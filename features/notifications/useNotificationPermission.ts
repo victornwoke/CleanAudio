@@ -43,9 +43,8 @@ export function useNotificationPermission(): UseNotificationPermissionResult {
 
   useEffect(() => {
     let cancelled = false;
-    void refresh().then((next) => {
+    void refresh().then(() => {
       if (cancelled) return;
-      setStatus(next);
     });
     return () => {
       cancelled = true;

@@ -21,7 +21,12 @@ export async function getEnhancedAudioResult(
 ): Promise<EnhancedAudioResult | null> {
   const cached = results.get(project.id);
   if (cached) return cached;
-  const media = await localRepositories.mediaFiles.listForProject(project.id);
+  let media;
+  try {
+    media = await localRepositories.mediaFiles.listForProject(project.id);
+  } catch {
+    return null;
+  }
   const generated = media
     .filter((item) => item.ownership === "generated")
     .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))[0];

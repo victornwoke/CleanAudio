@@ -1,6 +1,7 @@
 import { useAuth } from "@clerk/expo";
 import { useEffect, useState } from "react";
 import { AppState } from "react-native";
+import { File } from "expo-file-system";
 
 import { storeEnhancedAudioResult } from "@/features/review/enhancedAudioResult";
 import { getPresetDefinition } from "@/features/presets/presetCatalog";
@@ -61,18 +62,29 @@ async function execute(jobId: string, record: CloudJobRecord): Promise<void> {
   emit(record, running);
 
   try {
+    if (!record.project.presetId) {
+      throw new AudioDomainError("processing_failed", "Choose a preset before enhancing audio.");
+    }
+    const preset = getPresetDefinition(record.project.presetId);
     const token = await record.getToken();
     if (!token) throw new AudioDomainError("authentication_required", "Authentication is required.");
     const result = await enhanceWithCloud(record.project, token, record.controller.signal);
-    storeEnhancedAudioResult(record.project.id, {
-      uri: result.uri,
-      adapter: "cloud",
-      durationSeconds: record.project.durationSeconds,
-    });
+    const removeGeneratedOutput = async (mediaId?: string, persistedVersionId?: string) => {
+      if (mediaId) await localRepositories.mediaFiles.remove(mediaId).catch(() => {});
+      if (persistedVersionId) await localRepositories.versions.removeEnhancement(record.project.id, persistedVersionId).catch(() => {});
+      const file = new File(result.uri);
+      if (file.exists) file.delete();
+    };
+    if (record.controller.signal.aborted) {
+      await removeGeneratedOutput();
+      emit(record, { ...running, status: "cancelled", stage: null, progress: null });
+      return;
+    }
     const completedAt = new Date().toISOString();
     const versionId = `${record.project.id}_enhancement_${Date.now()}`;
+    const mediaId = `${versionId}_media`;
     await localRepositories.mediaFiles.registerGenerated({
-      id: `${versionId}_media`,
+      id: mediaId,
       projectId: record.project.id,
       versionId,
       uri: result.uri,
@@ -80,9 +92,12 @@ async function execute(jobId: string, record: CloudJobRecord): Promise<void> {
       sizeBytes: result.sizeBytes,
       createdAt: completedAt,
     });
-    if (record.project.presetId) {
-      const preset = getPresetDefinition(record.project.presetId);
-      await localRepositories.versions.addEnhancement(record.project.id, {
+    if (record.controller.signal.aborted) {
+      await removeGeneratedOutput(mediaId, versionId);
+      emit(record, { ...running, status: "cancelled", stage: null, progress: null });
+      return;
+    }
+    await localRepositories.versions.addEnhancement(record.project.id, {
         id: versionId,
         kind: "enhancement",
         sourceVersionId: `${record.project.id}_original`,
@@ -92,19 +107,35 @@ async function execute(jobId: string, record: CloudJobRecord): Promise<void> {
         presetLabel: preset.displayName,
         adapter: "cloud",
         modelVersion: "elevenlabs-voice-isolator",
-      });
-      const libraryProject = await localRepositories.projects.get(record.project.id);
-      if (libraryProject) {
-        await useProjectStore.getState().upsert({
+    });
+    if (record.controller.signal.aborted) {
+      await removeGeneratedOutput(mediaId, versionId);
+      emit(record, { ...running, status: "cancelled", stage: null, progress: null });
+      return;
+    }
+    const libraryProject = await localRepositories.projects.get(record.project.id);
+    if (record.controller.signal.aborted) {
+      await removeGeneratedOutput(mediaId, versionId);
+      emit(record, { ...running, status: "cancelled", stage: null, progress: null });
+      return;
+    }
+    if (libraryProject) {
+      await useProjectStore.getState().upsert({
           ...libraryProject,
           processingState: "processed",
           adapterUsed: "cloud",
           presetId: preset.id,
           presetLabel: preset.displayName,
           processingProgress: undefined,
-        });
-      }
+      });
     }
+    if (record.controller.signal.aborted) {
+      await removeGeneratedOutput(mediaId, versionId);
+      if (libraryProject) await useProjectStore.getState().upsert(libraryProject).catch(() => {});
+      emit(record, { ...running, status: "cancelled", stage: null, progress: null });
+      return;
+    }
+    storeEnhancedAudioResult(record.project.id, { uri: result.uri, adapter: "cloud", durationSeconds: record.project.durationSeconds });
     emit(record, {
       ...running,
       status: "completed",
@@ -167,14 +198,13 @@ export interface UseProcessingJobResult {
  */
 export function useProcessingJob(jobId: string, project: AudioProject | null): UseProcessingJobResult {
   const { getToken } = useAuth();
-  const [snapshot, setSnapshot] = useState<ProcessingJobSnapshot | null>(null);
+  const [snapshot, setSnapshot] = useState<ProcessingJobSnapshot | null>(() => jobs.get(jobId)?.snapshot ?? null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     if (!project) return;
     const record = jobs.get(jobId) ?? createJob(jobId, project, getToken);
     record.listeners.add(setSnapshot);
-    setSnapshot(record.snapshot);
     return () => {
       record.listeners.delete(setSnapshot);
     };

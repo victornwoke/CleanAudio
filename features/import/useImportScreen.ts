@@ -84,8 +84,9 @@ export function useImportScreen({ onImported }: UseImportScreenParams): UseImpor
         return;
       }
 
+      let project: AudioProject;
       try {
-        const project = await finalizeImportedProject({
+        project = await finalizeImportedProject({
           sourceUri,
           fileName,
           source: "imported",
@@ -103,10 +104,11 @@ export function useImportScreen({ onImported }: UseImportScreenParams): UseImpor
           properties: { mediaType: project.mediaType, durationSeconds: project.durationSeconds },
         });
         setStatus("idle");
-        await onImported(project);
       } catch (error) {
         handleValidationError(error);
+        return;
       }
+      await onImported(project);
     },
     [handleValidationError, onImported],
   );

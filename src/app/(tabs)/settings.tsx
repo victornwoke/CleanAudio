@@ -20,7 +20,6 @@ import { listProjectHistories } from "@/features/history/historyCatalog";
 import { useNotificationPermission } from "@/features/notifications/useNotificationPermission";
 import { LOUDNESS_TARGET_OPTIONS } from "@/features/fineTune/fineTuneDefaults";
 import { PRESET_DEFINITIONS, getPresetDefinition } from "@/features/presets/presetCatalog";
-import { requestDataExport } from "@/features/settings/dataExportRequest";
 import { formatMinutes, formatStorageBytes, sumEnhancedMinutes, sumLocalStorageBytes } from "@/features/settings/settingsSummaries";
 import { clearLocalCache, removeDownloadedCopies } from "@/features/settings/storageActions";
 import { useSubscription } from "@/features/subscriptions/useSubscription";
@@ -30,15 +29,8 @@ import { useProjectStore } from "@/store/useProjectStore";
 import type { ExportFormat } from "@/types/export";
 import type { LoudnessTargetId } from "@/types/fineTune";
 import type { PresetId } from "@/types/onboarding";
-import type { AppearanceMode } from "@/types/settings";
 
-type SheetKey = "appearance" | "language" | "preset" | "format" | "loudness";
-
-const APPEARANCE_OPTIONS: readonly OptionPickerOption<AppearanceMode>[] = [
-  { value: "system", label: "System", description: "Match your device setting" },
-  { value: "light", label: "Light" },
-  { value: "dark", label: "Dark" },
-];
+type SheetKey = "language" | "preset" | "format" | "loudness";
 
 const LANGUAGE_OPTIONS: readonly OptionPickerOption<"en">[] = [{ value: "en", label: "English" }];
 
@@ -46,8 +38,6 @@ const FORMAT_OPTIONS: readonly OptionPickerOption<ExportFormat>[] = [
   { value: "mp3", label: "MP3", description: "Smaller file size, wide compatibility" },
   { value: "wav", label: "WAV", description: "Uncompressed, largest file size" },
 ];
-
-const APPEARANCE_LABEL: Record<AppearanceMode, string> = { system: "System", light: "Light", dark: "Dark" };
 
 /**
  * Real settings screen (`prompts/21-settings-privacy-help.md` against
@@ -79,7 +69,6 @@ export default function SettingsScreen() {
   const [activeSheet, setActiveSheet] = useState<SheetKey | null>(null);
   const [storageBusy, setStorageBusy] = useState<"cache" | "downloads" | null>(null);
   const [deletingAccount, setDeletingAccount] = useState(false);
-  const [requestingExport, setRequestingExport] = useState(false);
 
   const localBytes = useMemo(() => sumLocalStorageBytes(projects), [projects]);
   const enhancedMinutes = useMemo(() => sumEnhancedMinutes(projects), [projects]);
@@ -110,30 +99,37 @@ export default function SettingsScreen() {
 
   async function handleClearCache(): Promise<void> {
     setStorageBusy("cache");
-    const result = await clearLocalCache(projects.map((project) => project.id));
-    setStorageBusy(null);
-    Alert.alert(
-      result.ok ? "Cache cleared" : "Nothing to clear",
-      result.ok
+    try {
+      const result = await clearLocalCache(projects.map((project) => project.id));
+      Alert.alert(result.ok ? "Cache cleared" : "Nothing to clear", result.ok
         ? `Removed temporary files for ${result.affectedCount} item${result.affectedCount === 1 ? "" : "s"}. Your originals and enhanced versions were not touched.`
-        : "There are no local projects yet."
-    );
+        : "There are no local projects yet.");
+    } catch {
+      Alert.alert("Couldn't clear cache", "Please try again.");
+    } finally {
+      setStorageBusy(null);
+    }
   }
 
   async function handleRemoveDownloads(): Promise<void> {
     setStorageBusy("downloads");
-    const histories = await listProjectHistories();
-    const result = await removeDownloadedCopies(histories);
-    setStorageBusy(null);
-    if (result.ok) await loadProjects();
-    Alert.alert(
+    try {
+      const histories = await listProjectHistories();
+      const result = await removeDownloadedCopies(histories);
+      if (result.ok) await loadProjects();
+      Alert.alert(
       result.ok ? "Downloaded copies removed" : "No copies removed",
       result.ok
         ? `Removed ${result.affectedCount} local cop${result.affectedCount === 1 ? "y" : "ies"} that were already backed up to the cloud.`
         : result.reason === "disabled_by_preference"
           ? 'Turn off "Keep Originals" below to allow removing local copies that are already backed up to the cloud.'
           : "Every local file here is either your only copy or not yet backed up."
-    );
+      );
+    } catch {
+      Alert.alert("Couldn't remove downloads", "Please try again.");
+    } finally {
+      setStorageBusy(null);
+    }
   }
 
   function confirmDeleteAccount(): void {
@@ -152,13 +148,6 @@ export default function SettingsScreen() {
     const result = await requestAccountDeletion();
     setDeletingAccount(false);
     Alert.alert(result.ok ? "Account deleted" : "Couldn't delete account", result.ok ? "Your account has been deleted." : result.error.message);
-  }
-
-  async function handleDataExportRequest(): Promise<void> {
-    setRequestingExport(true);
-    const result = await requestDataExport();
-    setRequestingExport(false);
-    Alert.alert(result.ok ? "Request submitted" : "Couldn't submit request", result.ok ? "We'll email you a copy of your data." : result.error.message);
   }
 
   function confirmSignOut(): void {
@@ -231,12 +220,6 @@ export default function SettingsScreen() {
           label="Product updates"
           value={preferences.notifyProductUpdates}
           onChange={(value) => updatePreference("notifyProductUpdates", value)}
-        />
-        <SettingsRow
-          icon={iconNames.appearance}
-          label="Appearance"
-          value={APPEARANCE_LABEL[preferences.appearanceMode]}
-          onPress={() => setActiveSheet("appearance")}
         />
         <SettingsRow icon={iconNames.language} label="Language" value="English" onPress={() => setActiveSheet("language")} />
         <SettingsRow
@@ -314,8 +297,8 @@ export default function SettingsScreen() {
         <SettingsRow
           icon={iconNames.dataExport}
           label="Request My Data"
-          onPress={() => void handleDataExportRequest()}
-          loading={requestingExport}
+          subtitle="Contact support to request an export"
+          onPress={() => router.push("/help")}
         />
         <SettingsRow
           icon={iconNames.privacyPolicy}
@@ -337,14 +320,6 @@ export default function SettingsScreen() {
         <SettingsRow icon={iconNames.helpSupport} label="Help & Support" onPress={() => router.push("/help")} />
       </SettingsSection>
 
-      <OptionPickerSheet
-        visible={activeSheet === "appearance"}
-        title="Appearance"
-        options={APPEARANCE_OPTIONS}
-        value={preferences.appearanceMode}
-        onSelect={(value) => updatePreference("appearanceMode", value)}
-        onClose={() => setActiveSheet(null)}
-      />
       <OptionPickerSheet
         visible={activeSheet === "language"}
         title="Language"

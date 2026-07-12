@@ -46,12 +46,18 @@ export function NotificationPreferenceRow() {
   }, []);
 
   async function handleChange(next: boolean): Promise<void> {
+    const previous = optedIn;
     setOptedIn(next);
-    await setJobNotificationOptIn(next);
+    try {
+      await setJobNotificationOptIn(next);
+    } catch {
+      setOptedIn(previous);
+      return;
+    }
     setOneSignalTags({ processing_notifications_enabled: next ? "true" : "false" });
     track({ name: "processing_notify_opt_in_changed", properties: { optedIn: next } });
     if (next && status === "not_determined") {
-      await requestPermission();
+      try { await requestPermission(); } catch { /* Permission denial/failure must not reject the UI callback. */ }
     }
   }
 

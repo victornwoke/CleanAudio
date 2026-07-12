@@ -69,6 +69,10 @@ export function createInMemoryLocalRepositories(seed: readonly LibraryProject[] 
         const current = histories.get(projectId);
         if (current) histories.set(projectId, { ...current, enhancements: [...current.enhancements, version] });
       },
+      async removeEnhancement(projectId, versionId) {
+        const current = histories.get(projectId);
+        if (current) histories.set(projectId, { ...current, enhancements: current.enhancements.filter((item) => item.id !== versionId) });
+      },
     },
     jobs: {
       async listReferences() { return [...jobs.values()]; },
@@ -95,6 +99,7 @@ export function createInMemoryLocalRepositories(seed: readonly LibraryProject[] 
         return { ...record };
       },
       async registerGenerated(record) { mediaFiles.set(record.id, { ...record }); },
+      async remove(recordId) { mediaFiles.delete(recordId); },
       async listForProject(projectId) { return [...mediaFiles.values()].filter((item) => item.projectId === projectId); },
       async cleanupTemporary(projectId) {
         for (const [id, item] of mediaFiles) if (item.projectId === projectId && item.ownership === "temporary") mediaFiles.delete(id);

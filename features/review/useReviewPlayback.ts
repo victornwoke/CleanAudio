@@ -116,7 +116,7 @@ export function useReviewPlayback(
       // where the user left it.
 
       setActiveTrack(next);
-      track({ name: "comparison_used", properties: { variant: next } });
+      if (enhancedAvailable) track({ name: "comparison_used", properties: { variant: next } });
     },
     [
       activeTrack,

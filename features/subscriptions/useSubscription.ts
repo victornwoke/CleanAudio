@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { createContext, createElement, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import Purchases, {
   INTRO_ELIGIBILITY_STATUS,
   type CustomerInfo,
@@ -73,7 +73,7 @@ async function fetchIntroEligibility(offering: PurchasesOffering): Promise<Recor
  * free or Pro state when the SDK isn't configured (missing API key,
  * `CLAUDE.md` §10).
  */
-export function useSubscription(): UseSubscriptionResult {
+function useSubscriptionState(): UseSubscriptionResult {
   const configured = isRevenueCatConfigured();
   const [entitlement, setEntitlement] = useState<SubscriptionEntitlementState>(
     configured ? deriveEntitlementState(null) : UNAVAILABLE_STATE
@@ -84,8 +84,10 @@ export function useSubscription(): UseSubscriptionResult {
   const [purchaseInProgress, setPurchaseInProgress] = useState(false);
   const [restoreInProgress, setRestoreInProgress] = useState(false);
   const currentOfferingRef = useRef<PurchasesOffering | null>(null);
+  const latestCustomerInfoRef = useRef<CustomerInfo | null>(null);
 
   const applyCustomerInfo = useCallback((customerInfo: CustomerInfo) => {
+    latestCustomerInfoRef.current = customerInfo;
     const state = deriveEntitlementState(customerInfo);
     const offering = currentOfferingRef.current;
     if (state.activePlanId === null && offering && state.activeProductIdentifier) {
@@ -114,13 +116,14 @@ export function useSubscription(): UseSubscriptionResult {
       }
       const introEligibility = await fetchIntroEligibility(current);
       setPackages(extractSubscriptionPackages(current, introEligibility));
+      if (latestCustomerInfoRef.current) applyCustomerInfo(latestCustomerInfoRef.current);
     } catch (error) {
       setPackages([]);
       setOfferingsError(mapPurchasesError(error));
     } finally {
       setOfferingsLoading(false);
     }
-  }, [configured]);
+  }, [configured, applyCustomerInfo]);
 
   useEffect(() => {
     if (!configured) return;
@@ -195,4 +198,17 @@ export function useSubscription(): UseSubscriptionResult {
     restore,
     refreshOfferings: loadOfferings,
   };
+}
+
+const SubscriptionContext = createContext<UseSubscriptionResult | null>(null);
+
+export function SubscriptionProvider({ children }: { children: ReactNode }) {
+  const value = useSubscriptionState();
+  return createElement(SubscriptionContext.Provider, { value }, children);
+}
+
+export function useSubscription(): UseSubscriptionResult {
+  const value = useContext(SubscriptionContext);
+  if (!value) throw new Error("useSubscription must be used within SubscriptionProvider");
+  return value;
 }

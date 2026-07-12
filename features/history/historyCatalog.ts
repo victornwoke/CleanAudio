@@ -31,7 +31,13 @@ export async function deleteHistoryProject(projectId: string, scope: DeleteScope
     try {
       await localRepositories.projects.upsert({ ...history.project, syncState: "cloud_placeholder" });
       await localRepositories.versions.putOriginal(projectId, { ...history.original, storageLocation: "cloud" });
-    } catch { /* Placeholder cleanup is best effort; preserve the deletion outcome. */ }
+    } catch {
+      await Promise.allSettled([
+        localRepositories.projects.upsert(history.project),
+        localRepositories.versions.putOriginal(projectId, history.original),
+      ]);
+      return { status: "unavailable", message: "The local deletion could not be saved. Please try again." };
+    }
     if (scope !== "local_and_cloud") track({ name: "project_deleted", properties: { scope } });
     return scope === "local_and_cloud"
       ? { status: "partial", message: "Local copies were removed, but cloud deletion needs the sync service and could not be confirmed." }

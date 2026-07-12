@@ -186,7 +186,7 @@ export function useRecordScreen(): UseRecordScreenResult {
         setPhase("idle");
         return null;
       }
-      const project = await finalizeRecordedProject({ uri, durationSeconds });
+      const project = finalizeRecordedProject({ uri, durationSeconds });
       track({ name: "recording_completed", properties: { durationSeconds } });
       return project;
     } catch {

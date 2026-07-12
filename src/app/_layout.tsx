@@ -14,6 +14,7 @@ import { posthog } from "@/lib/analytics/posthog";
 import { buildSafePersonProperties } from "@/lib/analytics/properties";
 import { routeNotificationClick } from "@/features/notifications/notificationRouter";
 import { useEntitlementStatus } from "@/features/subscriptions/useEntitlementStatus";
+import { SubscriptionProvider } from "@/features/subscriptions/useSubscription";
 import { getClerkPublishableKey } from "@/lib/auth/clerk";
 import { configureSentryOnce, navigationIntegration } from "@/lib/monitoring/sentry";
 import {
@@ -35,6 +36,7 @@ import "@/global.css";
  * No-ops safely if `EXPO_PUBLIC_SENTRY_DSN` is unset.
  */
 configureSentryOnce();
+configureRevenueCatOnce();
 
 /**
  * Registers Expo Router's navigation container with Sentry's React
@@ -69,13 +71,6 @@ function AuthIdentityBridge() {
  * anonymous identity before login (`AGENTS.md` §9), so this must not wait
  * for `AuthIdentityBridge`.
  */
-function PurchasesBootstrap() {
-  useEffect(() => {
-    configureRevenueCatOnce();
-  }, []);
-  return null;
-}
-
 /**
  * Configures OneSignal exactly once, attaches the notification-click
  * listener as early as possible (so a cold-start launch-by-tap is not
@@ -216,10 +211,10 @@ function RootLayout() {
       }}
     >
     <ClerkProvider publishableKey={getClerkPublishableKey()} tokenCache={tokenCache}>
+      <SubscriptionProvider>
       <ScreenTracker />
       <AnalyticsLifecycleTracker />
       <AnalyticsIdentityBootstrap />
-      <PurchasesBootstrap />
       <NotificationsBootstrap />
       <MonitoringNavigationBridge />
       <AuthIdentityBridge />
@@ -248,6 +243,7 @@ function RootLayout() {
           <Stack.Screen name="help" options={{ title: "Help & Support" }} />
         </Stack>
       </AppErrorBoundary>
+      </SubscriptionProvider>
     </ClerkProvider>
     </PostHogProvider>
   );

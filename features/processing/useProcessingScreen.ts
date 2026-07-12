@@ -37,11 +37,12 @@ export function useProcessingScreen(jobId: string): UseProcessingScreenResult {
   // guard below — remounting the same job (navigate away and back) must not
   // double-fire the start event.
   useEffect(() => {
-    if (reportedStartAttempts.has(jobId)) return;
-    reportedStartAttempts.add(jobId);
-    track({ name: "enhancement_started", properties: { presetId: project?.presetId ?? null } });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobId]);
+    if (!job.snapshot || !project) return;
+    const attemptKey = `${jobId}:${job.snapshot.startedAt}`;
+    if (reportedStartAttempts.has(attemptKey)) return;
+    reportedStartAttempts.add(attemptKey);
+    track({ name: "enhancement_started", properties: { presetId: project.presetId ?? null } });
+  }, [job.snapshot, jobId, project]);
 
   const [notifyOptedIn, setNotifyOptedIn] = useState(false);
   const notificationPreferenceMutatedRef = useRef(false);

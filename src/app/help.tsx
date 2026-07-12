@@ -106,7 +106,7 @@ export default function HelpScreen() {
           icon={iconNames.contactSupport}
           label="Contact Support"
           subtitle={supportEmail ?? "Not configured yet"}
-          onPress={supportEmail ? () => Linking.openURL(`mailto:${supportEmail}`) : undefined}
+          onPress={supportEmail ? () => { void Linking.openURL(`mailto:${supportEmail}`).catch(() => {}); } : undefined}
           disabled={!supportEmail}
         />
         <SettingsRow

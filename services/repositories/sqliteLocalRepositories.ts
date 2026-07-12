@@ -18,6 +18,9 @@ async function database(): Promise<SQLiteDatabase> {
         CREATE TABLE IF NOT EXISTS entities (kind TEXT NOT NULL, id TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY (kind, id));
         CREATE INDEX IF NOT EXISTS entities_kind_idx ON entities(kind);`);
       return db;
+    }).catch((error) => {
+      databasePromise = null;
+      throw error;
     });
   }
   return databasePromise;
@@ -54,6 +57,7 @@ export function createSqliteLocalRepositories(): LocalRepositories {
       getHistory: (id) => get<ProjectHistory>("history", id), listHistories: () => list<ProjectHistory>("history"),
       async putOriginal(id, version: OriginalVersion) { const history = await get<ProjectHistory>("history", id); if (history) await put("history", id, { ...history, original: version }); },
       async addEnhancement(id, version: EnhancementVersion) { const history = await get<ProjectHistory>("history", id); if (history) await put("history", id, { ...history, enhancements: [...history.enhancements, version] }); },
+      async removeEnhancement(id, versionId) { const history = await get<ProjectHistory>("history", id); if (history) await put("history", id, { ...history, enhancements: history.enhancements.filter((item) => item.id !== versionId) }); },
     },
     jobs: { listReferences: () => list<ProcessingJobSnapshot>("job"), upsertReference: (job) => put("job", job.jobId, job), removeReference: (id) => remove("job", id) },
     exports: {
@@ -64,10 +68,11 @@ export function createSqliteLocalRepositories(): LocalRepositories {
     mediaFiles: {
       async registerOriginal(project: AudioProject) { const record: MediaFileRecord = { id: `${project.id}_original_media`, projectId: project.id, versionId: `${project.id}_original`, uri: project.sourceUri, ownership: "original", sizeBytes: project.sizeBytes, createdAt: project.createdAt }; await put("media", record.id, record); return record; },
       registerGenerated: (record) => put("media", record.id, record),
+      remove: (recordId) => remove("media", recordId),
       async listForProject(id) { return (await list<MediaFileRecord>("media")).filter((item) => item.projectId === id); },
       async cleanupTemporary(id) { const records = await list<MediaFileRecord>("media"); await Promise.all(records.filter((item) => item.projectId === id && item.ownership === "temporary").map((item) => remove("media", item.id))); },
       async deleteOwnedFiles(id) { const records = await list<MediaFileRecord>("media"); await Promise.all(records.filter((item) => item.projectId === id).map((item) => remove("media", item.id))); },
-      async cloneOwnedFiles(sourceId, destinationId) { const records = await list<MediaFileRecord>("media"); for (const item of records.filter((record) => record.projectId === sourceId && record.ownership !== "temporary")) { const copy: MediaFileRecord = { ...item, id: `${destinationId}_${item.id}`, projectId: destinationId, versionId: item.versionId.replace(`${sourceId}_`, `${destinationId}_`) }; await put("media", copy.id, copy); } },
+      async cloneOwnedFiles(sourceId, destinationId) { const records = await list<MediaFileRecord>("media"); for (const item of records.filter((record) => record.projectId === sourceId && record.ownership !== "temporary" && record.versionId.startsWith(`${sourceId}_`))) { const copy: MediaFileRecord = { ...item, id: `${destinationId}_${item.id}`, projectId: destinationId, versionId: `${destinationId}_${item.versionId.slice(sourceId.length + 1)}` }; await put("media", copy.id, copy); } },
     },
     syncQueue: { list: () => list<SyncQueueItem>("sync"), enqueue: (item) => put("sync", item.id, item), remove: (id) => remove("sync", id) },
   };

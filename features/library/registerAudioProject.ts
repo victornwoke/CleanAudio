@@ -19,14 +19,19 @@ export async function registerAudioProject(project: AudioProject): Promise<void>
     presetId: project.presetId,
     sizeBytes: project.sizeBytes,
   };
-  await useProjectStore.getState().upsert(libraryProject);
-  await localRepositories.mediaFiles.registerOriginal(project);
-  await localRepositories.versions.putOriginal(project.id, {
-    id: `${project.id}_original`,
-    kind: "original",
-    createdAt: project.createdAt,
-    container: project.container.toUpperCase(),
-    sizeBytes: project.sizeBytes,
-    storageLocation: "local",
-  });
+  try {
+    await useProjectStore.getState().upsert(libraryProject);
+    await localRepositories.mediaFiles.registerOriginal(project);
+    await localRepositories.versions.putOriginal(project.id, {
+      id: `${project.id}_original`, kind: "original", createdAt: project.createdAt,
+      container: project.container.toUpperCase(), sizeBytes: project.sizeBytes, storageLocation: "local",
+    });
+  } catch (error) {
+    await Promise.allSettled([
+      localRepositories.mediaFiles.deleteOwnedFiles(project.id),
+      localRepositories.projects.remove(project.id),
+    ]);
+    useProjectStore.getState().remove(project.id);
+    throw error;
+  }
 }

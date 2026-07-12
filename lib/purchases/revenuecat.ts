@@ -101,12 +101,16 @@ export function configureRevenueCatOnce(): void {
     return;
   }
 
-  // Must run before `configure()`, which only installs its own noisy
-  // default log handler when no custom handler has been set yet.
-  installRevenueCatLogHandler();
-  Purchases.configure({ apiKey });
-  Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.ERROR);
-  configured = true;
+  try {
+    // Must run before `configure()`, which only installs its own noisy
+    // default log handler when no custom handler has been set yet.
+    installRevenueCatLogHandler();
+    Purchases.configure({ apiKey });
+    Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.ERROR);
+    configured = true;
+  } catch (error) {
+    if (__DEV__) console.warn("[purchases] RevenueCat configuration failed", error);
+  }
 }
 
 export function isRevenueCatConfigured(): boolean {

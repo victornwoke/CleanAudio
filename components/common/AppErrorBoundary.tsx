@@ -2,8 +2,6 @@ import { router } from "expo-router";
 import type { ReactNode } from "react";
 import * as Sentry from "@sentry/react-native";
 
-import { captureError } from "@/lib/monitoring/sentry";
-
 import { AppScreen } from "./AppScreen";
 import { ErrorState } from "./ErrorState";
 
@@ -30,11 +28,8 @@ export function AppErrorBoundary({ children, boundary }: AppErrorBoundaryProps) 
     <Sentry.ErrorBoundary
       beforeCapture={(scope) => {
         scope.setTag("boundary", boundary);
-      }}
-      onError={(error) => {
-        // Sentry.ErrorBoundary already reports the exception itself; this
-        // only adds the same safe context every other capture path uses.
-        captureError(error, { stage: boundary, errorCode: "unexpected_error" });
+        scope.setTag("stage", boundary);
+        scope.setTag("error_code", "unexpected_error");
       }}
       fallback={({ resetError }) => (
         <AppScreen>

@@ -40,8 +40,13 @@ export default function RecordScreen() {
     const project = await record.stop();
     if (!project) return;
     const registered = selectedPreset === "auto" ? project : { ...project, presetId: selectedPreset };
-    await registerAudioProject(registered);
-    goToPresetSelection(registered);
+    try {
+      await registerAudioProject(registered);
+      goToPresetSelection(registered);
+    } catch {
+      Alert.alert("Couldn't save recording", "Your recording could not be added to the library. Please try again.");
+      record.discard();
+    }
   }, [record, selectedPreset]);
 
   const handleClose = useCallback(() => {

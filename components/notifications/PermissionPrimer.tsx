@@ -38,11 +38,10 @@ export function PermissionPrimer({ optedIn, onAccept, onDark = false }: Permissi
 
   const hasTrackedViewRef = useRef(false);
   useEffect(() => {
-    if (hasTrackedViewRef.current) return;
+    if (status === "unavailable" || hasTrackedViewRef.current) return;
     hasTrackedViewRef.current = true;
     track({ name: "notification_primer_viewed", properties: { status } });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [status]);
 
   if (status === "unavailable") {
     return (

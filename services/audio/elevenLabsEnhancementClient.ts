@@ -4,6 +4,32 @@ import type { AudioProject } from "@/types/audio";
 import { AudioDomainError } from "@/types/audioDomainError";
 
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
+const MAX_OUTPUT_BYTES = 100 * 1024 * 1024;
+
+async function readBoundedBody(response: Response): Promise<Uint8Array> {
+  const declaredLength = Number(response.headers.get("Content-Length"));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_OUTPUT_BYTES) {
+    throw new AudioDomainError("file_too_large", "The enhancement service returned a file that is too large.");
+  }
+  if (!response.body) return new Uint8Array(await response.arrayBuffer());
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > MAX_OUTPUT_BYTES) {
+      await reader.cancel();
+      throw new AudioDomainError("file_too_large", "The enhancement service returned a file that is too large.");
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  return bytes;
+}
 
 function enhancementDirectory(): Directory {
   const directory = new Directory(Paths.document, "enhancements");
@@ -57,7 +83,7 @@ export async function enhanceWithCloud(
   });
   if (!response.ok) throw mapResponseError(response.status);
 
-  const bytes = new Uint8Array(await response.arrayBuffer());
+  const bytes = await readBoundedBody(response);
   if (bytes.byteLength === 0) {
     throw new AudioDomainError("processing_failed", "The enhancement service returned an empty file.");
   }

@@ -124,7 +124,6 @@ Events are captured with properties:
 ```typescript
 posthog.capture('burrito_considered', {
   total_considerations: count,
-  username: user.username,
 })
 ```
 
@@ -1409,4 +1408,3 @@ export const shadows = {
 ```
 
 ---
-

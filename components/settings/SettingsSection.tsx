@@ -19,7 +19,14 @@ export interface SettingsSectionProps {
  * other row-shaped child can be mixed freely within one section.
  */
 export function SettingsSection({ title, children }: SettingsSectionProps) {
-  const items = Children.toArray(children).filter(isValidElement);
+  function flatten(nodes: ReactNode): ReactNode[] {
+    return Children.toArray(nodes).flatMap((node) =>
+      isValidElement<{ children?: ReactNode }>(node) && node.type === Fragment
+        ? flatten(node.props.children)
+        : [node]
+    );
+  }
+  const items = flatten(children).filter(isValidElement);
 
   return (
     <View style={{ gap: spacing.xs }}>
