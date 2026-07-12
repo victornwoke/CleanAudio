@@ -11,7 +11,9 @@ async function readBoundedBody(response: Response): Promise<Uint8Array> {
   if (Number.isFinite(declaredLength) && declaredLength > MAX_OUTPUT_BYTES) {
     throw new AudioDomainError("file_too_large", "The enhancement service returned a file that is too large.");
   }
-  if (!response.body) return new Uint8Array(await response.arrayBuffer());
+  if (!response.body) {
+    throw new AudioDomainError("processing_failed", "The enhancement service returned an unreadable response.");
+  }
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;

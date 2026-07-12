@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Linking } from "react-native";
 
 import { track } from "@/lib/analytics/events";
@@ -34,20 +34,19 @@ export interface UseNotificationPermissionResult {
 export function useNotificationPermission(): UseNotificationPermissionResult {
   const [status, setStatus] = useState<OneSignalPermissionStatus>("unavailable");
   const [requesting, setRequesting] = useState(false);
+  const mountedRef = useRef(true);
 
   const refresh = useCallback(async () => {
     const next = await getOneSignalPermissionStatus();
-    setStatus(next);
+    if (mountedRef.current) setStatus(next);
     return next;
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    void refresh().then(() => {
-      if (cancelled) return;
-    });
+    mountedRef.current = true;
+    void refresh();
     return () => {
-      cancelled = true;
+      mountedRef.current = false;
     };
   }, [refresh]);
 

@@ -26,10 +26,13 @@ export interface AppErrorBoundaryProps {
 export function AppErrorBoundary({ children, boundary }: AppErrorBoundaryProps) {
   return (
     <Sentry.ErrorBoundary
-      beforeCapture={(scope) => {
+      beforeCapture={(scope, error) => {
+        const errorCode =
+          typeof error === "object" && error !== null && "code" in error && typeof error.code === "string"
+            ? error.code
+            : "unexpected_error";
         scope.setTag("boundary", boundary);
-        scope.setTag("stage", boundary);
-        scope.setTag("error_code", "unexpected_error");
+        scope.setTag("error_code", errorCode);
       }}
       fallback={({ resetError }) => (
         <AppScreen>
