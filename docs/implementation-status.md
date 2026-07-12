@@ -41,8 +41,17 @@ Status values: `not-started` | `in-progress` | `blocked` | `verified`. Updated b
 | PostHog analytics (`prompts/20`) | in-progress | `posthog-react-native` installed and configured once at the root layout; anonymous-then-identified identity, safe person properties, the full typed "Core events" taxonomy, screen tracking, and a dev-time forbidden-property guard are wired end-to-end. Not yet `verified` — no real event has been observed landing in the PostHog dashboard and no on-device tap-automation is available in this sandbox. See notes below. |
 | Settings / privacy / help (`prompts/21`) | in-progress | Real Settings/Help screens replace the `prompts/03` placeholders and are visually verified against `12-settings.png`'s structure/tokens. Account, subscription, notifications, defaults, storage, privacy, and help are all wired to real state — no fabricated quota/usage numbers. Not yet `verified` — no on-device tap-automation is available in this sandbox and a `window is not defined` crash in this Expo SDK's web static-rendering path (pre-existing, reproduced on the untouched `/` route too) blocked a Playwright pass. See notes below. |
 | Testing, accessibility, performance (`prompts/22`) | in-progress | Deterministic CI/test contracts and P0 semantic fixes are implemented. Physical-device accessibility, performance, purchase, push, and release-symbolication checks remain release blockers; see notes below. |
-| Production audit & release (`prompts/23`) | not-started | |
+| Production audit & release (`prompts/23`) | blocked | Audit documents created. JS verification and production bundle pass, but native iOS Release compilation fails in the OneSignal extension and multiple product/data/device/store blockers remain; see `docs/release-audit.md`. |
 | Figma handoff & visual polish (`prompts/24`) | not-started | |
+
+## `prompts/23-production-audit-and-release.md` — verification notes (2026-07-12)
+
+- Created `docs/release-audit.md`, `docs/privacy-data-map.md`, `docs/third-party-sdks.md`, `docs/app-store-checklist.md`, and `docs/known-limitations.md`.
+- Prompt 23 contains no `Visual references` section and names no PNGs, so no prompt-specific visual comparison was required and no screen styling changed.
+- `npm run verify` passed: strict type-check, Expo lint, Expo Doctor 20/20, and 34/34 deterministic tests.
+- `npx expo export --platform ios --output-dir /tmp/cleanaudio-release-export` passed and produced a production Hermes bundle. This does not constitute a native store build.
+- The native unsigned iOS Release build failed in `OneSignalNotificationServiceExtension/NotificationService.swift` with `no such module 'OneSignalExtension'`; Xcode also reported the extension's iOS 11 deployment target is below its supported iOS 12 minimum.
+- The app is not production-ready. Confirmed blockers include absent genuine enhancement/encoding, in-memory persistence and undeployed backend/deletion, unverified release-device SDK flows/accessibility/performance, incomplete identifiers/legal/store metadata, and missing signed iOS/Android CI delivery.
 
 ## `prompts/22-testing-accessibility-performance.md` — verification notes (2026-07-12)
 
