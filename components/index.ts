@@ -45,3 +45,8 @@ export * from "./processing/StageList";
 export * from "./review/CompareTimeline";
 export * from "./review/FeedbackSheet";
 export * from "./export/FormatOptionChip";
+export * from "./paywall/PlanCard";
+export * from "./paywall/FeatureComparison";
+export * from "./paywall/PurchaseLegalText";
+export * from "./notifications/PermissionPrimer";
+export * from "./notifications/NotificationPreferenceRow";

@@ -4,6 +4,7 @@ import type { PersonaId } from "@/types/onboarding";
 import type { EnhancementAdapter } from "@/types/library";
 import type { ProcessingErrorCode, ProcessingStage } from "@/types/processing";
 import type { ReviewFeedbackReason } from "@/types/review";
+import type { SubscriptionErrorCode, SubscriptionPlanId } from "@/types/subscription";
 
 /**
  * Typed onboarding analytics events (`prompts/04-demo-onboarding-persona.md`).
@@ -47,7 +48,13 @@ export type AnalyticsEvent =
     }
   | { name: "fine_tune_reset" }
   | { name: "export_completed"; properties: { format: ExportFormat } }
-  | { name: "export_failed"; properties: { errorCode: ExportErrorCode } };
+  | { name: "export_failed"; properties: { errorCode: ExportErrorCode } }
+  | { name: "paywall_viewed"; properties: { source: string } }
+  | { name: "purchase_started"; properties: { planId: SubscriptionPlanId } }
+  | { name: "purchase_completed"; properties: { planId: SubscriptionPlanId } }
+  | { name: "purchase_failed"; properties: { planId: SubscriptionPlanId; errorCode: SubscriptionErrorCode } }
+  | { name: "restore_completed"; properties: { restoredPro: boolean } }
+  | { name: "restore_failed"; properties: { errorCode: SubscriptionErrorCode } };
 
 export function track(event: AnalyticsEvent): void {
   if (__DEV__) {

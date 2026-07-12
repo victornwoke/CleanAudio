@@ -7,6 +7,7 @@ import { AppButton } from "@/components/common/AppButton";
 import { AppScreen } from "@/components/common/AppScreen";
 import { AppText } from "@/components/common/AppText";
 import { ErrorState } from "@/components/common/ErrorState";
+import { PermissionPrimer } from "@/components/notifications/PermissionPrimer";
 import { ProcessingRing } from "@/components/processing/ProcessingRing";
 import { StageList } from "@/components/processing/StageList";
 import { colors } from "@/constants/colors";
@@ -171,18 +172,7 @@ function ResolvedProcessingScreen({ jobId }: { jobId: string }) {
       </AppText>
 
       <View style={styles.actions}>
-        <AppButton
-          label={notifyOptedIn ? "We'll notify you when it's ready" : "Notify me when complete"}
-          icon={iconNames.notifications}
-          variant="outlineOnDark"
-          onPress={toggleNotifyOptIn}
-          disabled={notifyOptedIn}
-          accessibilityLabel={
-            notifyOptedIn
-              ? "You will be notified when this enhancement is ready"
-              : "Notify me when this enhancement is complete"
-          }
-        />
+        <PermissionPrimer optedIn={notifyOptedIn} onAccept={toggleNotifyOptIn} onDark />
         <AppButton
           label={isCancelling ? "Cancelling…" : "Cancel"}
           variant="outlineOnDark"

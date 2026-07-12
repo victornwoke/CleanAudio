@@ -118,6 +118,17 @@ export const iconNames = {
   // History and file detail (`prompts/13-history-and-file-detail.md`)
   compare: "swap-horizontal-outline",
   adjust: "options-outline",
+
+  // Paywall / subscription (`prompts/17-revenuecat-subscriptions.md`,
+  // `11-paywall.png`). The PNG's hero art is a bespoke crown illustration —
+  // no crown glyph exists in Ionicons and no image-generation tool is
+  // available in this build, so `premiumHero` substitutes the existing
+  // "star" glyph already used for the Premium tab (`tabPremiumActive`),
+  // flagged here rather than silently approximated.
+  premiumHero: "trophy",
+  radioSelected: "radio-button-on",
+  radioUnselected: "radio-button-off",
+  discountBadge: "pricetag-outline",
 } as const satisfies Record<string, IconName>;
 
 export type IconToken = keyof typeof iconNames;

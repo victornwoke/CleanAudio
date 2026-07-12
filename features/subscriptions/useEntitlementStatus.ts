@@ -1,3 +1,5 @@
+import { useSubscription } from "./useSubscription";
+
 export type EntitlementSource = "revenuecat" | "unavailable";
 
 export interface EntitlementStatus {
@@ -9,17 +11,17 @@ export interface EntitlementStatus {
 }
 
 /**
- * Typed client-entitlement boundary (`AGENTS.md` §4/§9). RevenueCat is not
- * installed yet (`prompts/17-revenuecat-subscriptions.md` is not-started —
- * see `docs/implementation-status.md`), so this always resolves to the
- * free tier rather than fabricating a Pro entitlement. Every Pro-gated
- * control in the export screen (quality tiers, Remove Watermark) reads
- * from this single hook, mirroring `features/presets/presetRecommendation.ts`'s
- * always-honest classifier stub, so swapping in the real RevenueCat-backed
- * hook later requires no call-site changes. Real premium processing must
+ * Typed client-entitlement boundary (`AGENTS.md` §4/§9), now backed by the
+ * real `useSubscription()` hook (`prompts/17-revenuecat-subscriptions.md`).
+ * Kept as a thin wrapper with its original `{isPro, source}` shape so
+ * existing call sites (the export screen's Pro-gated quality tiers and
+ * Remove Watermark switch) don't need to change. `source` is
+ * `"unavailable"` only when RevenueCat itself isn't configured/reachable —
+ * never used to fabricate a Pro entitlement. Real premium processing must
  * also verify entitlement server-side (`CLAUDE.md` §10) — not a client
  * concern this hook can satisfy on its own.
  */
 export function useEntitlementStatus(): EntitlementStatus {
-  return { isPro: false, source: "unavailable" };
+  const { isPro, lifecycle } = useSubscription();
+  return { isPro, source: lifecycle === "unavailable" ? "unavailable" : "revenuecat" };
 }
